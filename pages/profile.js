@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const API_URL = "http://localhost:5000";
+const API_URL = `http://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:5000`;
 
 export default function ProfilePage() {
   const [name, setName] = useState("");
@@ -181,6 +181,23 @@ export default function ProfilePage() {
         {message ? <p style={{ marginTop: 18, color: "#15803d", fontWeight: 600 }}>{message}</p> : null}
 
         <div style={{ marginTop: 22, textAlign: "center" }}>
+            <Link
+            href="/users"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textDecoration: "none",
+              color: "#fff",
+              background: "#0f766e",
+              borderRadius: "12px",
+              padding: "10px 16px",
+              fontWeight: 700,
+              marginRight: 10,
+            }}
+          >
+            Users dashboard
+            </Link>
             <Link
             href="/login"
             style={{

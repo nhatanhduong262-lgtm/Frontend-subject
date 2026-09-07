@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 
-const API_URL = "http://localhost:5000";
+const API_URL = `http://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:5000`;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function LoginPage() {
       const result = await response.json();
       window.localStorage.setItem("userId", String(result.user.id));
       window.localStorage.setItem("profile", JSON.stringify(result.user));
-      router.push("/profile");
+      router.push("/users");
     } catch (requestError) {
       setError(requestError.message || "Unable to sign in.");
     } finally {

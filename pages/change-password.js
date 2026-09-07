@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const API_URL = "http://localhost:5000";
+const API_URL = `http://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:5000`;
 
 export default function ChangePasswordPage() {
   const [oldPass, setOldPass] = useState("");
