@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const API_URL = `http://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:5000`;
+const API_URL = "/api";
 
 export default function ProfilePage() {
   const [name, setName] = useState("");

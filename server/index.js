@@ -152,7 +152,11 @@ app.put('/change-password/:id', async (req, res) => {
   res.send('Password changed successfully.');
 });
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+  });
+}
+
+module.exports = app;
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
-const API_URL = `http://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:5000`;
+const API_URL = "/api";
 
 export default function UsersPage() {
   const router = useRouter();
