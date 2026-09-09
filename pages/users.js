@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import BackButton from "../components/BackButton";
 
 const API_URL = "/api";
 
@@ -14,7 +15,10 @@ export default function UsersPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_URL}/users`);
+      const token = window.localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/users`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!response.ok) throw new Error(await response.text());
       const result = await response.json();
       setUsers(result.users || []);
@@ -35,6 +39,7 @@ export default function UsersPage() {
   }, [router]);
 
   const handleLogout = () => {
+    window.localStorage.removeItem("token");
     window.localStorage.removeItem("userId");
     window.localStorage.removeItem("profile");
     router.push("/login");
@@ -61,7 +66,8 @@ export default function UsersPage() {
             <h1 style={{ margin: "16px 0 8px", fontSize: 38 }}>Registered users</h1>
             <p style={{ margin: 0, color: "#475569" }}>A live view of the users stored in Supabase.</p>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <BackButton label="← Back" fallback="/dashboard" />
             <button type="button" onClick={loadUsers} disabled={loading} style={{ border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", padding: "11px 16px", fontWeight: 700, cursor: "pointer" }}>
               {loading ? "Loading..." : "Refresh"}
             </button>

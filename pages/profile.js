@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import BackButton from "../components/BackButton";
 
 const API_URL = "/api";
 
@@ -37,10 +38,14 @@ export default function ProfilePage() {
     setError("");
     try {
       const userId = window.localStorage.getItem("userId");
+      const token = window.localStorage.getItem("token");
       if (!userId) throw new Error("Please sign in before updating your profile.");
       const response = await fetch(`${API_URL}/profile/${userId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ name, email, phone }),
       });
       if (!response.ok) throw new Error(await response.text());
@@ -180,8 +185,8 @@ export default function ProfilePage() {
         {error ? <p style={{ marginTop: 18, color: "#dc2626", fontWeight: 600 }}>{error}</p> : null}
         {message ? <p style={{ marginTop: 18, color: "#15803d", fontWeight: 600 }}>{message}</p> : null}
 
-        <div style={{ marginTop: 22, textAlign: "center" }}>
-            <Link
+        <div style={{ marginTop: 22, display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+          <Link
             href="/users"
             style={{
               display: "inline-flex",
@@ -193,28 +198,11 @@ export default function ProfilePage() {
               borderRadius: "12px",
               padding: "10px 16px",
               fontWeight: 700,
-              marginRight: 10,
             }}
           >
             Users dashboard
-            </Link>
-            <Link
-            href="/login"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textDecoration: "none",
-              color: "#0f172a",
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: "12px",
-              padding: "10px 16px",
-              fontWeight: 700,
-            }}
-          >
-            ← Back to login
-            </Link>
+          </Link>
+          <BackButton label="← Back to login" fallback="/login" />
         </div>
       </div>
     </main>

@@ -4,6 +4,7 @@ create table public.users (
   password_hash text not null,
   name text not null,
   phone text not null default '',
+  role text not null default 'user' check (role in ('user', 'admin')),
   created_at timestamptz not null default now()
 );
 

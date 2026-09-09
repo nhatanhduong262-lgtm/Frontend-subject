@@ -2,8 +2,13 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
+const fs = require('node:fs');
+const path = require('node:path');
 const { createClient } = require('@supabase/supabase-js');
-const crypto = require('node:crypto');
+const { hashPassword, verifyPassword, signToken, verifyToken } = require('./auth');
+const { validateUploadedFile } = require('./uploadRules');
+const { requireAdminAccess, requireUserAccess } = require('./routeGuard');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -18,8 +23,18 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+const uploadDir = path.join(__dirname, 'uploads');
+fs.mkdirSync(uploadDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+});
+
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(uploadDir));
 
 app.get('/', (req, res) => {
   res.json({
@@ -30,34 +45,78 @@ app.get('/', (req, res) => {
   });
 });
 
-function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-  return `${salt}:${hash}`;
-}
-
-function verifyPassword(password, storedPassword) {
-  const [salt, storedHash] = storedPassword.split(':');
-  if (!salt || !storedHash) return false;
-  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'));
-}
-
 function publicUser(user) {
-  return { id: user.id, email: user.email, name: user.name, phone: user.phone || '' };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    phone: user.phone || '',
+    role: user.role || 'user',
+  };
+}
+
+function requireAuth(requiredRoles = []) {
+  return (req, res, next) => {
+    const rawToken = req.headers.authorization || '';
+    const token = rawToken.startsWith('Bearer ') ? rawToken.slice(7) : null;
+    const decoded = token ? verifyToken(token) : null;
+
+    if (!decoded) {
+      return res.status(401).json({ message: 'Authentication token is missing or invalid.' });
+    }
+
+    if (requiredRoles.length > 0 && !requiredRoles.includes(decoded.role)) {
+      return res.status(403).json({ message: 'You do not have permission to perform this action.' });
+    }
+
+    req.user = decoded;
+    next();
+  };
+}
+
+function requireSelfOrAdmin(paramName = 'id') {
+  return (req, res, next) => {
+    const requester = req.user;
+    const targetId = String(req.params[paramName]);
+
+    if (!requester || (!Number.isInteger(Number(requester.userId)) && !Number.isInteger(Number(targetId)))) {
+      return res.status(401).json({ message: 'Authentication is required.' });
+    }
+
+    if (String(requester.userId) === targetId || requester.role === 'admin') {
+      return next();
+    }
+
+    return res.status(403).json({ message: 'You can only access your own resource.' });
+  };
 }
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', database: 'supabase' });
 });
 
-app.get('/users', async (req, res) => {
+app.get('/users', requireAuth(['admin']), async (req, res) => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, name, phone')
+    .select('*')
     .order('id', { ascending: false });
   if (error) return res.status(500).send('Unable to load users.');
-  res.json({ users: data.map(publicUser) });
+  res.json({ users: (data || []).map(publicUser) });
+});
+
+app.get('/admin/summary', requireAuth(['admin']), async (req, res) => {
+  const [{ count: usersCount }, { count: devicesCount }] = await Promise.all([
+    supabase.from('users').select('*', { count: 'exact', head: true }),
+    supabase.from('devices').select('*', { count: 'exact', head: true }),
+  ]);
+
+  res.json({
+    summary: {
+      users: usersCount || 0,
+      devices: devicesCount || 0,
+      role: 'admin',
+    },
+  });
 });
 
 app.get('/devices', async (req, res) => {
@@ -97,15 +156,29 @@ app.post('/register', async (req, res) => {
   const { email, password, name, phone = '' } = req.body;
   if (!email || !password || !name) return res.status(400).send('Name, email, and password are required.');
 
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ email: email.trim().toLowerCase(), password_hash: hashPassword(password), name: name.trim(), phone: phone.trim() })
-    .select('id, email, name, phone')
-    .single();
+  const normalizedEmail = email.trim().toLowerCase();
+  const basePayload = {
+    email: normalizedEmail,
+    password_hash: hashPassword(password),
+    name: name.trim(),
+    phone: phone.trim(),
+  };
+
+  const insertPayload = { ...basePayload, role: 'user' };
+  let data;
+  let error;
+
+  ({ data, error } = await supabase.from('users').insert(insertPayload).select('*').single());
+
+  if (error && (error.code === '42703' || /column.*role.*does not exist/i.test(error.message || ''))) {
+    ({ data, error } = await supabase.from('users').insert(basePayload).select('*').single());
+  }
+
   if (error) {
     if (error.code === '23505') return res.status(409).send('An account with this email already exists.');
     return res.status(500).send('Unable to register user.');
   }
+
   res.status(201).json({ message: 'User registered', user: publicUser(data) });
 });
 
@@ -118,10 +191,21 @@ app.post('/login', async (req, res) => {
     .maybeSingle();
   if (error) return res.status(500).send('Unable to sign in.');
   if (!user || !verifyPassword(password || '', user.password_hash)) return res.status(401).send('Email or password is incorrect.');
-  res.json({ message: 'Login successful', user: publicUser(user) });
+
+  const token = signToken({
+    userId: user.id,
+    email: user.email,
+    role: user.role || 'user',
+  });
+
+  res.json({
+    message: 'Login successful',
+    token,
+    user: publicUser(user),
+  });
 });
 
-app.put('/profile/:id', async (req, res) => {
+app.put('/profile/:id', requireAuth(), requireUserAccess('id'), async (req, res) => {
   const { name, email, phone = '' } = req.body;
   if (!name || !email) return res.status(400).send('Name and email are required.');
 
@@ -129,7 +213,7 @@ app.put('/profile/:id', async (req, res) => {
     .from('users')
     .update({ name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim() })
     .eq('id', req.params.id)
-    .select('id, email, name, phone')
+    .select('*')
     .maybeSingle();
   if (error) {
     if (error.code === '23505') return res.status(409).send('An account with this email already exists.');
@@ -139,7 +223,7 @@ app.put('/profile/:id', async (req, res) => {
   res.json({ user: publicUser(data) });
 });
 
-app.put('/change-password/:id', async (req, res) => {
+app.put('/change-password/:id', requireAuth(), requireUserAccess('id'), async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const { data: user, error } = await supabase.from('users').select('*').eq('id', req.params.id).maybeSingle();
   if (error) return res.status(500).send('Unable to change password.');
@@ -150,6 +234,30 @@ app.put('/change-password/:id', async (req, res) => {
   const { error: updateError } = await supabase.from('users').update({ password_hash: hashPassword(newPassword) }).eq('id', req.params.id);
   if (updateError) return res.status(500).send('Unable to change password.');
   res.send('Password changed successfully.');
+});
+
+app.post('/upload', requireAuth(), upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    validateUploadedFile(file);
+
+    const safeName = `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
+    const fullPath = path.join(uploadDir, safeName);
+
+    await fs.promises.writeFile(fullPath, file.buffer);
+
+    return res.status(201).json({
+      message: 'File uploaded successfully.',
+      file: {
+        name: safeName,
+        mimeType: file.mimetype,
+        size: file.size,
+        url: `/uploads/${safeName}`,
+      },
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message || 'Upload failed.' });
+  }
 });
 
 if (require.main === module) {
