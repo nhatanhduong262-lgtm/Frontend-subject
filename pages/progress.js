@@ -1,32 +1,104 @@
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
-
-const leaderboard = [
-  { name: "Kai", rank: 1, progress: 92, xp: 24890 },
-  { name: "Ava", rank: 2, progress: 88, xp: 23120 },
-  { name: "Leo", rank: 3, progress: 81, xp: 21450 },
-  { name: "Mia", rank: 4, progress: 75, xp: 19800 },
-];
-
-const stages = [
-  { name: "Prologue", progress: 100, status: "Complete" },
-  { name: "Training grounds", progress: 82, status: "In progress" },
-  { name: "Boss arena", progress: 48, status: "In progress" },
-  { name: "Final chapter", progress: 18, status: "Locked" },
-];
+import { DEFAULT_PLAYER_PROGRESS, getStoredPlayerProgress, loadPlayerProgressFromDatabase, subscribeToUserProgress } from "../lib/playerProgress";
 
 export default function ProgressPage() {
   const router = useRouter();
+  const [playerProgress, setPlayerProgress] = useState(DEFAULT_PLAYER_PROGRESS);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
 
   useEffect(() => {
     if (!window.localStorage.getItem("userId")) {
       router.replace("/login");
-      return undefined;
     }
-    return undefined;
   }, [router]);
+
+  // Load player progress
+  useEffect(() => {
+    setPlayerProgress(getStoredPlayerProgress()); // Set from local storage on client mount
+
+    let active = true;
+    let unsubscribe = () => {};
+    let pollingId = null;
+
+    const syncProgress = (event) => {
+      const nextProgress = event?.detail ?? getStoredPlayerProgress();
+      if (active) setPlayerProgress(Array.isArray(nextProgress) ? nextProgress : DEFAULT_PLAYER_PROGRESS);
+    };
+
+    const handleStorage = () => syncProgress({ detail: getStoredPlayerProgress() });
+
+    window.addEventListener("pixelpulse-progress-updated", syncProgress);
+    window.addEventListener("storage", handleStorage);
+
+    const hydrateProgress = async () => {
+      const nextProgress = await loadPlayerProgressFromDatabase();
+      if (active) setPlayerProgress(nextProgress);
+    };
+
+    hydrateProgress();
+
+    const userId = window.localStorage.getItem("userId");
+    if (userId) {
+      unsubscribe = subscribeToUserProgress(userId, (nextProgress) => {
+        if (active) setPlayerProgress(nextProgress);
+      });
+
+      pollingId = window.setInterval(() => {
+        hydrateProgress();
+      }, 4000);
+    }
+
+    return () => {
+      active = false;
+      unsubscribe();
+      if (pollingId) window.clearInterval(pollingId);
+      window.removeEventListener("pixelpulse-progress-updated", syncProgress);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  // Load global leaderboard
+  useEffect(() => {
+    let active = true;
+    const fetchGlobalLeaderboard = async () => {
+      try {
+        setLoadingLeaderboard(true);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+        const res = await fetch(`${apiUrl}/leaderboard-global`);
+        if (res.ok) {
+          const data = await res.json();
+          if (active) setLeaderboard(data.leaderboard || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch global leaderboard", err);
+      } finally {
+        if (active) setLoadingLeaderboard(false);
+      }
+    };
+
+    fetchGlobalLeaderboard();
+    const interval = setInterval(fetchGlobalLeaderboard, 30000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    window.localStorage.removeItem("token");
+    window.localStorage.removeItem("userId");
+    window.localStorage.removeItem("profile");
+    router.push("/login");
+  };
+
+  const averageProgress = Math.round(playerProgress.reduce((sum, game) => sum + Number(game.progress || 0), 0) / Math.max(playerProgress.length, 1));
+  const completedStages = playerProgress.filter((game) => Number(game.progress || 0) >= 80).length;
+  const xp = playerProgress.reduce((sum, game) => sum + Number(game.progress || 0) * 120, 0);
+  const level = Math.max(1, Math.round(averageProgress / 5));
 
   return (
     <main className="dashboard-shell" style={{ minHeight: "100vh" }}>
@@ -43,16 +115,7 @@ export default function ProgressPage() {
           <BackButton label="← Back" />
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
           <Link href="/games" className="ghost-button">Games</Link>
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={() => {
-              window.localStorage.removeItem("token");
-              window.localStorage.removeItem("userId");
-              window.localStorage.removeItem("profile");
-              router.push("/login");
-            }}
-          >
+          <button type="button" className="ghost-button" onClick={handleLogout}>
             Logout
           </button>
         </div>
@@ -61,19 +124,19 @@ export default function ProgressPage() {
       <div className="stats-grid">
         <div className="stat-card">
           <span className="label">Current level</span>
-          <strong>24</strong>
+          <strong>{level}</strong>
         </div>
         <div className="stat-card">
           <span className="label">XP earned</span>
-          <strong>24,890</strong>
+          <strong>{xp.toLocaleString()}</strong>
         </div>
         <div className="stat-card">
           <span className="label">Stages cleared</span>
-          <strong>3/4</strong>
+          <strong>{completedStages}/{playerProgress.length}</strong>
         </div>
         <div className="stat-card">
           <span className="label">Completion</span>
-          <strong>82%</strong>
+          <strong>{averageProgress}%</strong>
         </div>
       </div>
 
@@ -81,33 +144,45 @@ export default function ProgressPage() {
         <section className="panel-card">
           <h2>Stage progression</h2>
           <div className="game-list">
-            {stages.map((stage) => (
-              <div key={stage.name} className="game-list-item">
-                <div>
-                  <strong>{stage.name}</strong>
-                  <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{stage.status}</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <span className="progress-badge">{stage.progress}%</span>
-                </div>
-              </div>
-            ))}
+            {playerProgress.map((game) => {
+              const status = game.progress === 100 ? "Complete" : game.progress > 0 ? "In progress" : "Locked";
+              return (
+                <Link href={game.href || "/dashboard"} key={game.title} className="game-list-item" style={{ display: 'flex', gap: 16 }}>
+                  {game.image && (
+                    <div style={{ width: 64, height: 64, borderRadius: 12, overflow: 'hidden', flexShrink: 0, border: '1px solid var(--border)' }}>
+                      <img src={game.image} alt={game.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <strong style={{ margin: 0, fontSize: '1.1rem' }}>{game.title}</strong>
+                    <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{status}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <span className="progress-badge">{game.progress}%</span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
 
         <aside className="panel-card">
-          <h2>Leaderboard</h2>
-          <div className="game-list">
-            {leaderboard.map((player) => (
-              <div key={player.name} className="game-list-item">
-                <div>
-                  <strong>#{player.rank} {player.name}</strong>
-                  <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{player.xp.toLocaleString()} XP</div>
+          <h2>Global Leaderboard</h2>
+          {loadingLeaderboard ? (
+            <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--muted)' }}>Loading top players...</div>
+          ) : (
+            <div className="game-list">
+              {leaderboard.map((player) => (
+                <div key={player.name} className="game-list-item">
+                  <div>
+                    <strong>#{player.rank} {player.name}</strong>
+                    <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{player.xp.toLocaleString()} XP</div>
+                  </div>
+                  <span className="progress-badge">{player.progress}%</span>
                 </div>
-                <span className="progress-badge">{player.progress}%</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </aside>
       </div>
     </main>

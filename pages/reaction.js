@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import Leaderboard from "../components/Leaderboard";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { useGameEffects } from "../context/GameEffectsContext";
 
 export default function ReactionPage() {
   const router = useRouter();
+  const { isMuted, toggleMute, playAlertSound, playErrorSound, playScoreSound, fireConfetti, saveScoreToCloud } = useGameEffects();
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("Tap start and wait for green.");
   const [reactionTime, setReactionTime] = useState(0);
@@ -51,6 +54,7 @@ export default function ReactionPage() {
     timeoutRef.current = window.setTimeout(() => {
       setStatus("ready");
       setMessage("NOW! Click instantly.");
+      playAlertSound();
       startedAtRef.current = Date.now();
     }, delay);
   };
@@ -58,6 +62,7 @@ export default function ReactionPage() {
   const handlePress = () => {
     if (status === "waiting") {
       clearTimer();
+      playErrorSound();
       setStatus("idle");
       setMessage("Too soon. Start again.");
       return;
@@ -67,6 +72,12 @@ export default function ReactionPage() {
       const elapsed = Date.now() - startedAtRef.current;
       const safeTime = Math.max(elapsed, 0);
       const nextBest = bestTime === 0 ? safeTime : Math.min(bestTime, safeTime);
+      
+      playScoreSound();
+      if (nextBest < bestTime || bestTime === 0) {
+        fireConfetti();
+      }
+      
       const nextScore = score + 1;
       const nextRounds = rounds + 1;
       const nextAverage = Math.round(
@@ -81,6 +92,10 @@ export default function ReactionPage() {
       setStatus("idle");
       setMessage(`Reaction: ${safeTime} ms`);
       window.localStorage.setItem("reaction-best", String(nextBest));
+      
+      const reflexScore = Math.max(0, 1000 - safeTime);
+      saveScoreToCloud("Pulse Reflex", reflexScore);
+      
       mergeProgressRecord(
         { title: "Pulse Reflex", genre: "Speed", href: "/reaction" },
         nextBest,
@@ -107,6 +122,9 @@ export default function ReactionPage() {
         </div>
 
         <div className="dashboard-actions">
+          <button type="button" className="ghost-button" onClick={toggleMute} style={{ fontSize: 20, padding: "8px 12px" }}>
+            {isMuted ? '🔇' : '🔊'}
+          </button>
           <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
@@ -187,6 +205,8 @@ export default function ReactionPage() {
           <span>Rounds: {rounds}</span>
         </div>
       </section>
+      
+      <Leaderboard gameName="Pulse Reflex" />
     </main>
   );
 }

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import Leaderboard from "../components/Leaderboard";
+import { useGameEffects } from "../context/GameEffectsContext";
 
 const GAME_WIDTH = 420;
 const GAME_HEIGHT = 560;
@@ -36,6 +38,8 @@ export default function FlappyPage() {
   const [birdY, setBirdY] = useState(GAME_HEIGHT / 2 - 40);
   const [pipes, setPipes] = useState([]);
 
+  const { isMuted, toggleMute, playJumpSound, playScoreSound, playGameOverSound, fireConfetti, saveScoreToCloud } = useGameEffects();
+
   const birdRef = useRef({ x: 100, y: GAME_HEIGHT / 2 - 40, velocity: 0 });
   const pipesRef = useRef([]);
   const scoreRef = useRef(0);
@@ -52,18 +56,29 @@ export default function FlappyPage() {
     return undefined;
   }, [router]);
 
-  const endGame = useCallback(() => {
+  const endGame = useCallback(async () => {
     setGameState("over");
+    playGameOverSound();
+
+    const isNewHigh = scoreRef.current > bestScore;
+    if (isNewHigh && scoreRef.current > 0) {
+      fireConfetti();
+    }
+    
     const updatedBest = Math.max(bestScore, scoreRef.current);
     setBestScore(updatedBest);
     window.localStorage.setItem("flappy-best", String(updatedBest));
+    
     mergeProgressRecord(
       { title: "Sky Hopper", genre: "Arcade", href: "/flappy" },
       updatedBest,
       "direct",
       20,
     );
-  }, [bestScore]);
+
+    // Save to Cloud and show Toast
+    saveScoreToCloud("Sky Hopper", scoreRef.current);
+  }, [bestScore, playGameOverSound, fireConfetti, saveScoreToCloud]);
 
   const resetGame = useCallback(() => {
     birdRef.current = { x: 100, y: GAME_HEIGHT / 2 - 40, velocity: 0 };
@@ -85,8 +100,9 @@ export default function FlappyPage() {
       setGameState("playing");
     }
 
+    playJumpSound();
     birdRef.current.velocity = FLAP_STRENGTH;
-  }, [gameState, resetGame]);
+  }, [gameState, resetGame, playJumpSound]);
 
   useEffect(() => {
     const handleKey = (event) => {
@@ -119,6 +135,7 @@ export default function FlappyPage() {
           pipe.passed = true;
           scoreRef.current += 1;
           setScore(scoreRef.current);
+          playScoreSound();
         }
       }
 
@@ -185,6 +202,12 @@ export default function FlappyPage() {
           </button>
         </div>
       </header>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <button className="ghost-button" onClick={toggleMute}>
+          {isMuted ? "🔇 Unmute Sound" : "🔊 Mute Sound"}
+        </button>
+      </div>
 
       <div className="stats-grid" style={{ marginBottom: 20 }}>
         <div className="stat-card">
@@ -336,6 +359,8 @@ export default function FlappyPage() {
           )}
         </div>
       </section>
+
+      <Leaderboard gameName="Sky Hopper" />
     </main>
   );
 }

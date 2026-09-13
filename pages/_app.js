@@ -1,5 +1,7 @@
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import '../app/globals.css';
+import { AuthProvider } from '../context/AuthContext';
+import { GameEffectsProvider } from '../context/GameEffectsContext';
 
 const theme = createTheme({
   palette: {
@@ -29,9 +31,13 @@ const theme = createTheme({
 
 export default function App({ Component, pageProps }) {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Component {...pageProps} />
-    </ThemeProvider>
+    <AuthProvider>
+      <GameEffectsProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Component {...pageProps} />
+        </ThemeProvider>
+      </GameEffectsProvider>
+    </AuthProvider>
   );
 }

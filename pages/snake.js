@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import Leaderboard from "../components/Leaderboard";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { useGameEffects } from "../context/GameEffectsContext";
 
 const GRID_SIZE = 18;
 const TICK_MS = 120;
@@ -37,6 +39,7 @@ function randomFood(snake) {
 
 export default function SnakePage() {
   const router = useRouter();
+  const { isMuted, toggleMute, playSnakeEatSound, playGameOverSound, fireConfetti, saveScoreToCloud } = useGameEffects();
   const [snake, setSnake] = useState(createInitialSnake());
   const [food, setFood] = useState({ x: 12, y: 8 });
   const [direction, setDirection] = useState({ x: 1, y: 0 });
@@ -70,6 +73,12 @@ export default function SnakePage() {
   };
 
   useEffect(() => {
+    if (status === "game-over" && score > 0) {
+      saveScoreToCloud("Neon Snake", score);
+    }
+  }, [status, score, saveScoreToCloud]);
+
+  useEffect(() => {
     if (status !== "playing") return undefined;
 
     tickRef.current = window.setInterval(() => {
@@ -94,6 +103,7 @@ export default function SnakePage() {
 
         if (hitsWall || hitsSelf) {
           setStatus("game-over");
+          playGameOverSound();
           return currentSnake;
         }
 
@@ -103,13 +113,19 @@ export default function SnakePage() {
         if (!ateFood) {
           nextSnake.pop();
         } else {
+          playSnakeEatSound();
           const updatedScore = score + 1;
           setScore(updatedScore);
           const updatedBest = Math.max(bestScore, updatedScore);
+          
+          if (updatedScore > bestScore && bestScore > 0 && updatedScore === bestScore + 1) {
+            fireConfetti();
+          }
+          
           setBestScore(updatedBest);
           window.localStorage.setItem("snake-best", String(updatedBest));
           mergeProgressRecord(
-            { title: "Pong Arena", genre: "Arcade", href: "/pong" },
+            { title: "Neon Snake", genre: "Arcade", href: "/snake" },
             updatedBest,
             "direct",
             20,
@@ -127,7 +143,7 @@ export default function SnakePage() {
         window.clearInterval(tickRef.current);
       }
     };
-  }, [bestScore, food, queuedDirection, score, status]);
+  }, [bestScore, food, queuedDirection, score, status, playSnakeEatSound, playGameOverSound, fireConfetti]);
 
   useEffect(() => {
     const handler = (event) => {
@@ -174,6 +190,9 @@ export default function SnakePage() {
         </div>
 
         <div className="dashboard-actions">
+          <button type="button" className="ghost-button" onClick={toggleMute} style={{ fontSize: 20, padding: "8px 12px" }}>
+            {isMuted ? '🔇' : '🔊'}
+          </button>
           <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
@@ -266,6 +285,8 @@ export default function SnakePage() {
           })}
         </div>
       </section>
+      
+      <Leaderboard gameName="Neon Snake" />
     </main>
   );
 }

@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import Leaderboard from "../components/Leaderboard";
 import { createInitialPongState, stepPongState } from "../server/pongLogic";
+import { useGameEffects } from "../context/GameEffectsContext";
+import { mergeProgressRecord } from "../lib/playerProgress";
 
 const PADDLE_HEIGHT = 100;
 const BOARD_WIDTH = 800;
@@ -10,6 +13,7 @@ const BOARD_HEIGHT = 480;
 
 export default function PongPage() {
   const router = useRouter();
+  const { isMuted, toggleMute, playPaddleHitSound, playWallHitSound, playScoreSound, playGameOverSound, saveScoreToCloud } = useGameEffects();
   const [state, setState] = useState(createInitialPongState());
   const [controls, setControls] = useState({ leftUp: false, leftDown: false, rightUp: false, rightDown: false });
   const gameLoopRef = useRef(null);
@@ -47,7 +51,33 @@ export default function PongPage() {
 
   useEffect(() => {
     gameLoopRef.current = window.setInterval(() => {
-      setState((current) => stepPongState(current, controls));
+      setState((current) => {
+        if (current.winner) return current;
+        
+        const nextState = stepPongState(current, controls);
+        
+        if (nextState.leftScore > current.leftScore || nextState.rightScore > current.rightScore) {
+          playScoreSound();
+        } else if (Math.abs(nextState.vx) > Math.abs(current.vx)) {
+          playPaddleHitSound();
+        } else if (nextState.vy !== current.vy) {
+          playWallHitSound();
+        }
+        
+        if (nextState.winner && !current.winner) {
+          playGameOverSound();
+          const finalScore = Math.max(nextState.leftScore, nextState.rightScore);
+          saveScoreToCloud("Pong Arena", finalScore);
+          mergeProgressRecord(
+            { title: "Pong Arena", genre: "Arcade", href: "/pong" },
+            finalScore,
+            "direct",
+            20,
+          );
+        }
+        
+        return nextState;
+      });
     }, 16);
 
     return () => {
@@ -55,7 +85,7 @@ export default function PongPage() {
         window.clearInterval(gameLoopRef.current);
       }
     };
-  }, [controls]);
+  }, [controls, playScoreSound, playPaddleHitSound, playWallHitSound, playGameOverSound, saveScoreToCloud]);
 
   const resetGame = () => setState(createInitialPongState());
 
@@ -71,6 +101,9 @@ export default function PongPage() {
         </div>
 
         <div className="dashboard-actions">
+          <button type="button" className="ghost-button" onClick={toggleMute} style={{ fontSize: 20, padding: "8px 12px" }}>
+            {isMuted ? '🔇' : '🔊'}
+          </button>
           <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
@@ -172,6 +205,8 @@ export default function PongPage() {
           />
         </div>
       </section>
+      
+      <Leaderboard gameName="Pong Arena" />
     </main>
   );
 }

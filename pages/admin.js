@@ -109,8 +109,6 @@ export default function AdminPage() {
 
   const shellStyle = {
     minHeight: "100vh",
-    background: "radial-gradient(circle at top left, rgba(34,211,238,0.18), transparent 26%), radial-gradient(circle at right, rgba(16,185,129,0.18), transparent 24%), linear-gradient(135deg, #030d0c 0%, #071b1a 35%, #0a1220 100%)",
-    color: "#edfdf7",
     padding: "28px 20px 40px",
     position: "relative",
     overflow: "hidden",
@@ -133,10 +131,10 @@ export default function AdminPage() {
             <span className="brand-dot" style={{ boxShadow: "0 0 18px rgba(52,211,153,0.8)" }} />
             <span>PixelPulse</span>
           </div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "6px 12px", borderRadius: 999, background: "rgba(16,185,129,0.14)", border: "1px solid rgba(94,234,212,0.35)", color: "#a7f3d0", fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, boxShadow: "0 0 18px rgba(16, 185, 129, 0.2)" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "6px 12px", borderRadius: 999, background: "rgba(16,185,129,0.14)", border: "1px solid rgba(94,234,212,0.35)", color: "var(--mint)", fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, boxShadow: "0 0 18px rgba(16, 185, 129, 0.2)" }}>
             Admin mode
           </div>
-          <h1 style={{ marginTop: 12, color: "#ecfef5", textShadow: "0 0 18px rgba(52,211,153,0.35)", letterSpacing: "0.04em" }}>Admin control room</h1>
+          <h1 style={{ marginTop: 12, textShadow: "0 0 18px rgba(52,211,153,0.35)", letterSpacing: "0.04em" }}>Admin control room</h1>
         </div>
 
         <div className="dashboard-actions">
@@ -149,27 +147,27 @@ export default function AdminPage() {
       </header>
 
       <div className="stats-grid" style={{ position: "relative", zIndex: 1 }}>
-        <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.18), rgba(15,23,42,0.72))", borderColor: "rgba(94,234,212,0.36)", boxShadow: "0 0 22px rgba(16,185,129,0.18)" }}>
+        <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-1, 16, 185, 129), 0.18), transparent)", borderColor: "rgba(var(--card-tint-1, 94, 234, 212), 0.36)" }}>
           <span className="label">Total users</span>
           <strong>1,248</strong>
         </div>
-        <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(45,212,191,0.18), rgba(15,23,42,0.72))", borderColor: "rgba(45,212,191,0.32)", boxShadow: "0 0 20px rgba(45,212,191,0.16)" }}>
+        <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-2, 45, 212, 191), 0.18), transparent)", borderColor: "rgba(var(--card-tint-2, 45, 212, 191), 0.32)" }}>
           <span className="label">Games live</span>
           <strong>{buildGameCatalogSummary(games).liveGames}</strong>
         </div>
-        <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(59,130,246,0.18), rgba(15,23,42,0.72))", borderColor: "rgba(96,165,250,0.28)", boxShadow: "0 0 20px rgba(59,130,246,0.16)" }}>
+        <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-3, 59, 130, 246), 0.18), transparent)", borderColor: "rgba(var(--card-tint-3, 96, 165, 250), 0.28)" }}>
           <span className="label">Avg. completion</span>
           <strong>{buildGameCatalogSummary(games).averageProgress}%</strong>
         </div>
-        <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(168,85,247,0.20), rgba(15,23,42,0.72))", borderColor: "rgba(192,132,252,0.30)", boxShadow: "0 0 20px rgba(168,85,247,0.14)" }}>
+        <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-4, 168, 85, 247), 0.20), transparent)", borderColor: "rgba(var(--card-tint-4, 192, 132, 252), 0.30)" }}>
           <span className="label">Active players</span>
           <strong>{games.reduce((sum, game) => sum + (game.players || 0), 0).toLocaleString()}</strong>
         </div>
       </div>
 
       <div className="dashboard-content" style={{ position: "relative", zIndex: 1 }}>
-        <section className="panel-card" style={{ background: "linear-gradient(180deg, rgba(5, 18, 21, 0.94), rgba(15, 23, 42, 0.78))", border: "1px solid rgba(125, 211, 252, 0.18)", boxShadow: "0 0 28px rgba(34,211,238,0.08)" }}>
-          <div style={panelHeaderStyle}>System command</div>
+        <section className="panel-card" style={{ boxShadow: "0 0 28px rgba(34,211,238,0.08)" }}>
+          <div style={panelHeaderStyle}>Library Management</div>
           <h2 style={{ marginTop: 0, color: "#ecfeff" }}>Game management</h2>
           <div className="game-list">
             {games.map((game) => {
@@ -312,8 +310,8 @@ export default function AdminPage() {
           ) : null}
         </section>
 
-        <aside className="panel-card" style={{ background: "linear-gradient(180deg, rgba(15, 118, 110, 0.22), rgba(15, 23, 42, 0.72))", borderColor: "rgba(94,234,212,0.26)", boxShadow: "0 0 26px rgba(16,185,129,0.12)" }}>
-          <div style={panelHeaderStyle}>Command queue</div>
+        <aside className="panel-card" style={{ boxShadow: "0 0 26px rgba(16,185,129,0.12)" }}>
+          <div style={panelHeaderStyle}>System Settings</div>
           <h2 style={{ marginTop: 0, color: "#b7f7dc" }}>Quick actions</h2>
           <form onSubmit={handleAddGame} className="game-list" style={{ gap: 12 }}>
             <div className="form-field">

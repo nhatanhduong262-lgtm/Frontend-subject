@@ -188,7 +188,8 @@ app.post('/register', async (req, res) => {
 
     if (error) {
       if (error.code === '23505') return res.status(409).send('An account with this email already exists.');
-      return res.status(500).send('Unable to register user.');
+      const cause = error.cause ? error.cause.message : '';
+      return res.status(500).send(`Lỗi hệ thống: ${error.message}. ${cause}`);
     }
 
     res.status(201).json({ message: 'User registered', user: publicUser(data) });
@@ -336,6 +337,79 @@ app.post('/upload', requireAuth(), upload.single('file'), async (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({ message: error.message || 'Upload failed.' });
+  }
+});
+
+app.get('/leaderboard-global', async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('name, progress_data');
+
+    if (error) return res.status(500).json({ message: 'Unable to load global leaderboard.' });
+    
+    const leaderboard = data.map(user => {
+      const progressList = normalizeProgressList(user.progress_data || []);
+      const xp = progressList.reduce((sum, game) => sum + Number(game.progress || 0) * 120, 0);
+      const avg = Math.round(progressList.reduce((sum, game) => sum + Number(game.progress || 0), 0) / Math.max(progressList.length, 1));
+      return { name: user.name || 'Unknown', xp, progress: avg };
+    })
+    .sort((a, b) => b.xp - a.xp)
+    .slice(0, 10)
+    .map((u, index) => ({ ...u, rank: index + 1 }));
+
+    res.json({ leaderboard });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+app.get('/leaderboard/:game_name', async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const gameName = req.params.game_name;
+    const { data, error } = await supabaseClient
+      .from('game_logs')
+      .select('score, played_at, users(name)')
+      .eq('game_name', gameName)
+      .order('score', { ascending: false })
+      .limit(5);
+
+    if (error) return res.status(500).json({ message: 'Unable to load leaderboard.' });
+    
+    // Map response to a flatter structure
+    const leaderboard = (data || []).map(entry => ({
+      score: entry.score,
+      playedAt: entry.played_at,
+      playerName: entry.users?.name || 'Unknown'
+    }));
+
+    res.json({ leaderboard });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+app.post('/game_logs', requireAuth(), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { game_name, score } = req.body;
+    const userId = req.user.userId;
+
+    if (!game_name || typeof score !== 'number') {
+      return res.status(400).json({ message: 'game_name and score are required.' });
+    }
+
+    const { error } = await supabaseClient
+      .from('game_logs')
+      .insert({ user_id: userId, game_name, score });
+
+    if (error) return res.status(500).json({ message: 'Unable to save game log.' });
+
+    res.status(201).json({ message: 'Game score saved successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
   }
 });
 

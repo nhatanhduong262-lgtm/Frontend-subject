@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import Leaderboard from "../components/Leaderboard";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { useGameEffects } from "../context/GameEffectsContext";
 
 const SYMBOLS = ["⚡", "🎯", "🪐", "🚀", "🌙", "💎"];
 
@@ -16,6 +18,7 @@ function shuffleCards() {
 
 export default function MemoryPage() {
   const router = useRouter();
+  const { isMuted, toggleMute, playCardFlipSound, playMatchSuccessSound, playMismatchSound, playScoreSound, fireConfetti, saveScoreToCloud } = useGameEffects();
   const [cards, setCards] = useState([]);
   const [flippedIndexes, setFlippedIndexes] = useState([]);
   const [matchedSymbols, setMatchedSymbols] = useState([]);
@@ -58,6 +61,7 @@ export default function MemoryPage() {
     setMoves((current) => current + 1);
 
     if (firstCard.symbol === secondCard.symbol) {
+      playMatchSuccessSound();
       const nextMatched = [...matchedSymbols, firstCard.symbol];
       setMatchedSymbols(nextMatched);
       setCards((current) =>
@@ -77,21 +81,33 @@ export default function MemoryPage() {
       return () => window.clearTimeout(timer);
     }
 
+    playMismatchSound();
     const timer = window.setTimeout(() => {
       setFlippedIndexes([]);
       setIsLocked(false);
     }, 700);
 
     return () => window.clearTimeout(timer);
-  }, [cards, flippedIndexes, matchedSymbols]);
+  }, [cards, flippedIndexes, matchedSymbols, playMatchSuccessSound, playMismatchSound]);
 
   useEffect(() => {
-    if (matchedSymbols.length === SYMBOLS.length && cards.length > 0) {
+    if (matchedSymbols.length === SYMBOLS.length && cards.length > 0 && !isWon) {
       setIsWon(true);
-
+      playScoreSound();
+      
       const nextBest = bestMoves === 0 || moves < bestMoves ? moves : bestMoves;
+      
+      if (moves < bestMoves || bestMoves === 0) {
+        fireConfetti();
+      }
+
       setBestMoves(nextBest);
       window.localStorage.setItem("memory-best", String(nextBest));
+      
+      // Points calculation: fewer moves = more points
+      const points = Math.max(10, 100 - moves * 2);
+      saveScoreToCloud("Neon Match", points);
+      
       mergeProgressRecord(
         { title: "Neon Match", genre: "Puzzle", href: "/memory" },
         nextBest,
@@ -99,7 +115,7 @@ export default function MemoryPage() {
         18,
       );
     }
-  }, [bestMoves, cards.length, matchedSymbols.length, moves]);
+  }, [bestMoves, cards.length, matchedSymbols.length, moves, isWon, playScoreSound, fireConfetti, saveScoreToCloud]);
 
   const handleCardClick = (index) => {
     if (isLocked || flippedIndexes.includes(index)) return;
@@ -107,6 +123,7 @@ export default function MemoryPage() {
     const selectedCard = cards[index];
     if (!selectedCard || selectedCard.matched) return;
 
+    playCardFlipSound();
     const nextFlipped = [...flippedIndexes, index];
     setFlippedIndexes(nextFlipped);
   };
@@ -123,6 +140,9 @@ export default function MemoryPage() {
         </div>
 
         <div className="dashboard-actions">
+          <button type="button" className="ghost-button" onClick={toggleMute} style={{ fontSize: 20, padding: "8px 12px" }}>
+            {isMuted ? '🔇' : '🔊'}
+          </button>
           <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
@@ -229,6 +249,8 @@ export default function MemoryPage() {
           </div>
         )}
       </section>
+      
+      <Leaderboard gameName="Neon Match" />
     </main>
   );
 }

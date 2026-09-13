@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import Leaderboard from "../components/Leaderboard";
+import { useGameEffects } from "../context/GameEffectsContext";
 
 function rollDie() {
   return Math.floor(Math.random() * 6) + 1;
@@ -9,6 +11,7 @@ function rollDie() {
 
 export default function DicePage() {
   const router = useRouter();
+  const { isMuted, toggleMute, playDiceRollSound, playScoreSound, playGameOverSound, saveScoreToCloud } = useGameEffects();
   const [playerRoll, setPlayerRoll] = useState(1);
   const [botRoll, setBotRoll] = useState(1);
   const [playerScore, setPlayerScore] = useState(0);
@@ -25,24 +28,35 @@ export default function DicePage() {
   }, [router]);
 
   const rollDice = () => {
-    const player = rollDie();
-    const bot = rollDie();
-    const nextRound = round + 1;
+    playDiceRollSound();
+    
+    // Simulate a tiny delay so the dice roll sound plays before result sound
+    setTimeout(() => {
+      const player = rollDie();
+      const bot = rollDie();
+      const nextRound = round + 1;
 
-    setPlayerRoll(player);
-    setBotRoll(bot);
+      setPlayerRoll(player);
+      setBotRoll(bot);
 
-    if (player > bot) {
-      setPlayerScore((current) => current + 1);
-      setMessage(`Round ${round}: You win! ${player} to ${bot}.`);
-    } else if (player < bot) {
-      setBotScore((current) => current + 1);
-      setMessage(`Round ${round}: CPU wins! ${bot} to ${player}.`);
-    } else {
-      setMessage(`Round ${round}: Draw! Both rolled ${player}.`);
-    }
+      if (player > bot) {
+        const nextScore = playerScore + 1;
+        setPlayerScore(nextScore);
+        setMessage(`Round ${round}: You win! ${player} to ${bot}.`);
+        setTimeout(() => {
+          playScoreSound();
+          saveScoreToCloud("Lucky Dice", nextScore);
+        }, 400); // play win sound after roll sound finishes
+      } else if (player < bot) {
+        setBotScore((current) => current + 1);
+        setMessage(`Round ${round}: CPU wins! ${bot} to ${player}.`);
+        setTimeout(playGameOverSound, 400);
+      } else {
+        setMessage(`Round ${round}: Draw! Both rolled ${player}.`);
+      }
 
-    setRound(nextRound);
+      setRound(nextRound);
+    }, 100);
   };
 
   return (
@@ -57,6 +71,9 @@ export default function DicePage() {
         </div>
 
         <div className="dashboard-actions">
+          <button type="button" className="ghost-button" onClick={toggleMute} style={{ fontSize: 20, padding: "8px 12px" }}>
+            {isMuted ? '🔇' : '🔊'}
+          </button>
           <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
@@ -118,6 +135,8 @@ export default function DicePage() {
           </div>
         </div>
       </section>
+      
+      <Leaderboard gameName="Lucky Dice" />
     </main>
   );
 }

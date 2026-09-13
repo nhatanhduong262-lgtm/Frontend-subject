@@ -1,5 +1,12 @@
 # PixelPulse — Full-Stack Arcade Dashboard Project
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
+**Live Demo:** [https://your-vercel-project-link.vercel.app](https://your-vercel-project-link.vercel.app)
+
+### Demo Accounts
+- **Admin**: `admin@pixelpulse.app` / `admin123`
+- **User**: `player@pixelpulse.app` / `player123`
+
 This project is a graduation-level web application built with Next.js, Express, and Supabase. The goal is to create a role-based game platform where players can log in, see their progress, access games, and track achievements, while admins can manage users and game-related data.
 
 The app combines:
