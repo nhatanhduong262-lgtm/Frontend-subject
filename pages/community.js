@@ -39,7 +39,7 @@ export default function CommunityPage() {
         </div>
 
         <div className="dashboard-actions">
-          <BackButton label="← Back" fallback="/dashboard" />
+          <BackButton label="← Back" />
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/progress" className="ghost-button">Progress</Link>

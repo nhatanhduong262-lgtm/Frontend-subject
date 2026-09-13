@@ -202,7 +202,7 @@ export default function ProfilePage() {
           >
             Users dashboard
           </Link>
-          <BackButton label="← Back to login" fallback="/login" />
+          <BackButton label="← Back to login" />
         </div>
       </div>
     </main>

@@ -40,8 +40,39 @@ function buildGameCatalogSummary(games = []) {
   };
 }
 
+function updateGameInList(games = [], gameId, formValues = {}) {
+  const targetId = Number(gameId);
+
+  if (!Number.isFinite(targetId)) return games;
+
+  return games.map((game) => {
+    if (Number(game.id) !== targetId) return game;
+
+    return normalizeGamePayload(
+      {
+        ...game,
+        ...formValues,
+        id: game.id,
+        players: Number(formValues.players ?? game.players ?? 0),
+        progress: Number(formValues.progress ?? game.progress ?? 0),
+      },
+      targetId,
+    );
+  });
+}
+
+function removeGameFromList(games = [], gameId) {
+  const targetId = Number(gameId);
+
+  if (!Number.isFinite(targetId)) return games;
+
+  return games.filter((game) => Number(game.id) !== targetId);
+}
+
 module.exports = {
   clampProgress,
   normalizeGamePayload,
   buildGameCatalogSummary,
+  updateGameInList,
+  removeGameFromList,
 };

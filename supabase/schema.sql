@@ -5,10 +5,13 @@ create table public.users (
   name text not null,
   phone text not null default '',
   role text not null default 'user' check (role in ('user', 'admin')),
+  progress_data jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
 
 alter table public.users enable row level security;
+
+alter table public.users add column if not exists progress_data jsonb not null default '[]'::jsonb;
 
 create index users_email_lower_idx on public.users (lower(email));
 

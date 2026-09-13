@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 import Link from "next/link";
 
 const API_URL = "/api";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "", phone: "" });
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -36,11 +38,21 @@ export default function RegisterPage() {
     }
   };
 
+  const handleReturnToDashboard = () => {
+    const hasSession = typeof window !== "undefined" && !!window.localStorage.getItem("token");
+    router.push(hasSession ? "/dashboard" : "/");
+  };
+
+  const handleBackToLogin = () => {
+    const hasSession = typeof window !== "undefined" && !!window.localStorage.getItem("token");
+    router.push(hasSession ? "/dashboard" : "/login");
+  };
+
   const pageStyle = {
     minHeight: "100vh",
     display: "grid",
     placeItems: "center",
-    background: "radial-gradient(circle at top, rgba(124, 58, 237, 0.18), transparent 30%), linear-gradient(135deg, #020817 0%, #0b1120 48%, #111827 100%)",
+    background: "radial-gradient(circle at top, rgba(139, 92, 246, 0.18), transparent 30%), radial-gradient(circle at bottom right, rgba(6,182,212,0.12), transparent 24%), linear-gradient(135deg, #020817 0%, #0b1120 48%, #111827 100%)",
     padding: "32px 20px",
     fontFamily: "Inter, Arial, sans-serif",
     position: "relative",
@@ -50,10 +62,10 @@ export default function RegisterPage() {
   const cardStyle = {
     width: "100%",
     maxWidth: "500px",
-    background: "rgba(15, 23, 42, 0.82)",
-    border: "1px solid rgba(96, 165, 250, 0.22)",
+    background: "linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(17, 24, 39, 0.82))",
+    border: "1px solid rgba(125, 211, 252, 0.22)",
     borderRadius: "26px",
-    boxShadow: "0 24px 70px rgba(59, 130, 246, 0.18), 0 0 0 1px rgba(167, 139, 250, 0.1)",
+    boxShadow: "0 24px 70px rgba(125, 211, 252, 0.10), 0 0 0 1px rgba(167, 139, 250, 0.12)",
     padding: "32px",
     backdropFilter: "blur(18px)",
     position: "relative",
@@ -78,6 +90,7 @@ export default function RegisterPage() {
     color: "#f8fafc",
     boxSizing: "border-box",
     outline: "none",
+    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.02)",
   };
 
   const buttonStyle = {
@@ -100,8 +113,8 @@ export default function RegisterPage() {
 
       <div style={cardStyle}>
         <div style={{ marginBottom: 24 }}>
-          <div className="brand-mark" style={{ marginBottom: 14 }}>
-            <span className="brand-dot" />
+          <div className="brand-mark" style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 10, textShadow: "0 0 16px rgba(125,211,252,0.45)" }}>
+            <span className="brand-dot" style={{ boxShadow: "0 0 18px rgba(168,85,247,0.75)" }} />
             PixelPulse
           </div>
           <div
@@ -121,7 +134,7 @@ export default function RegisterPage() {
           >
             Create account
           </div>
-          <h1 style={{ margin: "16px 0 8px", fontSize: "34px", color: "#f8fafc" }}>Get started</h1>
+          <h1 style={{ margin: "16px 0 8px", fontSize: "34px", color: "#f8fafc", letterSpacing: "0.03em", textShadow: "0 0 18px rgba(125,211,252,0.18)" }}>Get started</h1>
           <p style={{ margin: 0, color: "#cbd5e1", fontSize: "15px" }}>Set up your profile and enter the arena.</p>
         </div>
 
@@ -161,9 +174,10 @@ export default function RegisterPage() {
           Already have an account? <Link href="/login" style={{ color: "#7dd3fc", fontWeight: 800, textDecoration: "none" }}>Sign in</Link>
         </p>
 
-        <div style={{ marginTop: 18, textAlign: "center" }}>
-          <Link
-            href="/login"
+        <div style={{ marginTop: 18, display: "grid", gap: 10, textAlign: "center" }}>
+          <button
+            type="button"
+            onClick={handleReturnToDashboard}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -175,10 +189,31 @@ export default function RegisterPage() {
               borderRadius: "12px",
               padding: "10px 16px",
               fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Return to dashboard
+          </button>
+
+          <button
+            type="button"
+            onClick={handleBackToLogin}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textDecoration: "none",
+              color: "#e2e8f0",
+              background: "rgba(15, 23, 42, 0.8)",
+              border: "1px solid rgba(148, 163, 184, 0.2)",
+              borderRadius: "12px",
+              padding: "10px 16px",
+              fontWeight: 700,
+              cursor: "pointer",
             }}
           >
             ← Back to login
-          </Link>
+          </button>
         </div>
       </div>
     </main>

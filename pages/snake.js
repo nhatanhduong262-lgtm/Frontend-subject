@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import { mergeProgressRecord } from "../lib/playerProgress";
 
 const GRID_SIZE = 18;
 const TICK_MS = 120;
@@ -107,6 +108,12 @@ export default function SnakePage() {
           const updatedBest = Math.max(bestScore, updatedScore);
           setBestScore(updatedBest);
           window.localStorage.setItem("snake-best", String(updatedBest));
+          mergeProgressRecord(
+            { title: "Pong Arena", genre: "Arcade", href: "/pong" },
+            updatedBest,
+            "direct",
+            20,
+          );
           setFood(randomFood(nextSnake));
         }
 
@@ -167,7 +174,7 @@ export default function SnakePage() {
         </div>
 
         <div className="dashboard-actions">
-          <BackButton label="← Back" fallback="/games" />
+          <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
           <button

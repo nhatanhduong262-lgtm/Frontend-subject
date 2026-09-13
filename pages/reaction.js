@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import { mergeProgressRecord } from "../lib/playerProgress";
 
 export default function ReactionPage() {
   const router = useRouter();
@@ -80,6 +81,12 @@ export default function ReactionPage() {
       setStatus("idle");
       setMessage(`Reaction: ${safeTime} ms`);
       window.localStorage.setItem("reaction-best", String(nextBest));
+      mergeProgressRecord(
+        { title: "Pulse Reflex", genre: "Speed", href: "/reaction" },
+        nextBest,
+        "inverse",
+        700,
+      );
       return;
     }
 
@@ -100,7 +107,7 @@ export default function ReactionPage() {
         </div>
 
         <div className="dashboard-actions">
-          <BackButton label="← Back" fallback="/games" />
+          <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
           <button

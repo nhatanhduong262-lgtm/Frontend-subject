@@ -71,7 +71,7 @@ export default function PongPage() {
         </div>
 
         <div className="dashboard-actions">
-          <BackButton label="← Back" fallback="/games" />
+          <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
           <button

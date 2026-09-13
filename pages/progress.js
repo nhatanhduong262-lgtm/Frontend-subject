@@ -40,7 +40,7 @@ export default function ProgressPage() {
         </div>
 
         <div className="dashboard-actions">
-          <BackButton label="← Back" fallback="/dashboard" />
+          <BackButton label="← Back" />
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
           <Link href="/games" className="ghost-button">Games</Link>
           <button

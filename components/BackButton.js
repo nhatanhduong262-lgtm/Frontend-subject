@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 
-export default function BackButton({ label = "← Back", fallback = "/dashboard" }) {
+export default function BackButton({ label = "← Back", fallback = "/" }) {
   const router = useRouter();
 
   const handleBack = () => {

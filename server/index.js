@@ -12,18 +12,28 @@ const { requireAdminAccess, requireUserAccess } = require('./routeGuard');
 
 const app = express();
 const port = process.env.PORT || 5000;
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const uploadDir = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(process.cwd(), 'server', 'uploads');
+let supabase = null;
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set before starting the server.');
+function getSupabaseClient() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set before using database features.');
+  }
+
+  if (!supabase) {
+    supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+  }
+
+  return supabase;
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
-
-const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const upload = multer({
@@ -53,6 +63,30 @@ function publicUser(user) {
     phone: user.phone || '',
     role: user.role || 'user',
   };
+}
+
+function normalizeProgressList(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((entry) => entry && typeof entry === 'object')
+    .map((entry) => ({
+      title: String(entry.title || 'Untitled game'),
+      genre: String(entry.genre || 'Arcade'),
+      progress: Number.isFinite(Number(entry.progress)) ? Math.min(100, Math.max(0, Number(entry.progress))) : 0,
+      href: entry.href || '/games',
+      updatedAt: entry.updatedAt || new Date().toISOString(),
+    }));
+}
+
+function isMissingProgressColumnError(error) {
+  return Boolean(
+    error && (
+      error.code === '42703' ||
+      /column.*progress_data.*does not exist/i.test(error.message || '') ||
+      /column.*progress_data.*not exist/i.test(error.message || '')
+    )
+  );
 }
 
 function requireAuth(requiredRoles = []) {
@@ -96,144 +130,189 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/users', requireAuth(['admin']), async (req, res) => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .order('id', { ascending: false });
-  if (error) return res.status(500).send('Unable to load users.');
-  res.json({ users: (data || []).map(publicUser) });
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) return res.status(500).send('Unable to load users.');
+    res.json({ users: (data || []).map(publicUser) });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database configuration is missing.' });
+  }
 });
 
 app.get('/admin/summary', requireAuth(['admin']), async (req, res) => {
-  const [{ count: usersCount }, { count: devicesCount }] = await Promise.all([
-    supabase.from('users').select('*', { count: 'exact', head: true }),
-    supabase.from('devices').select('*', { count: 'exact', head: true }),
-  ]);
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { count: usersCount } = await supabaseClient
+      .from('users')
+      .select('*', { count: 'exact', head: true });
 
-  res.json({
-    summary: {
-      users: usersCount || 0,
-      devices: devicesCount || 0,
-      role: 'admin',
-    },
-  });
-});
-
-app.get('/devices', async (req, res) => {
-  const { data, error } = await supabase
-    .from('devices')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) return res.status(500).send('Unable to load devices.');
-  res.json({ devices: data });
-});
-
-app.post('/devices', async (req, res) => {
-  const { name, type, manufacturer = '', model = '', serial_number = '', location = '', image_url = '', status = 'Online', specifications = {}, notes = '' } = req.body;
-  if (!name || !type || !location) return res.status(400).send('Name, type, and location are required.');
-  const { data, error } = await supabase.from('devices').insert({
-    name: name.trim(), type, manufacturer: manufacturer.trim(), model: model.trim(), serial_number: serial_number.trim(),
-    location: location.trim(), image_url: image_url.trim(), status, specifications, notes: notes.trim(),
-  }).select('*').single();
-  if (error) return res.status(500).send('Unable to create device.');
-  res.status(201).json({ device: data });
-});
-
-app.patch('/devices/:id/status', async (req, res) => {
-  const status = req.body.status === 'Offline' ? 'Offline' : 'Online';
-  const { data, error } = await supabase.from('devices').update({ status, last_seen: new Date().toISOString() }).eq('id', req.params.id).select('*').single();
-  if (error) return res.status(500).send('Unable to update device status.');
-  res.json({ device: data });
-});
-
-app.delete('/devices/:id', async (req, res) => {
-  const { error } = await supabase.from('devices').delete().eq('id', req.params.id);
-  if (error) return res.status(500).send('Unable to remove device.');
-  res.sendStatus(204);
+    res.json({
+      summary: {
+        users: usersCount || 0,
+        role: 'admin',
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database configuration is missing.' });
+  }
 });
 
 app.post('/register', async (req, res) => {
-  const { email, password, name, phone = '' } = req.body;
-  if (!email || !password || !name) return res.status(400).send('Name, email, and password are required.');
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { email, password, name, phone = '' } = req.body;
+    if (!email || !password || !name) return res.status(400).send('Name, email, and password are required.');
 
-  const normalizedEmail = email.trim().toLowerCase();
-  const basePayload = {
-    email: normalizedEmail,
-    password_hash: hashPassword(password),
-    name: name.trim(),
-    phone: phone.trim(),
-  };
+    const normalizedEmail = email.trim().toLowerCase();
+    const basePayload = {
+      email: normalizedEmail,
+      password_hash: hashPassword(password),
+      name: name.trim(),
+      phone: phone.trim(),
+    };
 
-  const insertPayload = { ...basePayload, role: 'user' };
-  let data;
-  let error;
+    const insertPayload = { ...basePayload, role: 'user' };
+    let data;
+    let error;
 
-  ({ data, error } = await supabase.from('users').insert(insertPayload).select('*').single());
+    ({ data, error } = await supabaseClient.from('users').insert(insertPayload).select('*').single());
 
-  if (error && (error.code === '42703' || /column.*role.*does not exist/i.test(error.message || ''))) {
-    ({ data, error } = await supabase.from('users').insert(basePayload).select('*').single());
+    if (error && (error.code === '42703' || /column.*role.*does not exist/i.test(error.message || ''))) {
+      ({ data, error } = await supabaseClient.from('users').insert(basePayload).select('*').single());
+    }
+
+    if (error) {
+      if (error.code === '23505') return res.status(409).send('An account with this email already exists.');
+      return res.status(500).send('Unable to register user.');
+    }
+
+    res.status(201).json({ message: 'User registered', user: publicUser(data) });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database configuration is missing.' });
   }
-
-  if (error) {
-    if (error.code === '23505') return res.status(409).send('An account with this email already exists.');
-    return res.status(500).send('Unable to register user.');
-  }
-
-  res.status(201).json({ message: 'User registered', user: publicUser(data) });
 });
 
 app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('*')
-    .ilike('email', email?.trim() || '')
-    .maybeSingle();
-  if (error) return res.status(500).send('Unable to sign in.');
-  if (!user || !verifyPassword(password || '', user.password_hash)) return res.status(401).send('Email or password is incorrect.');
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { email, password } = req.body;
+    const { data: user, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .ilike('email', email?.trim() || '')
+      .maybeSingle();
+    if (error) return res.status(500).send('Unable to sign in.');
+    if (!user || !verifyPassword(password || '', user.password_hash)) return res.status(401).send('Email or password is incorrect.');
 
-  const token = signToken({
-    userId: user.id,
-    email: user.email,
-    role: user.role || 'user',
-  });
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role || 'user',
+    });
 
-  res.json({
-    message: 'Login successful',
-    token,
-    user: publicUser(user),
-  });
+    res.json({
+      message: 'Login successful',
+      token,
+      user: publicUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database configuration is missing.' });
+  }
+});
+
+app.get('/users/:id/progress', requireAuth(), requireUserAccess('id'), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('progress_data')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (error) {
+      if (isMissingProgressColumnError(error)) {
+        return res.json({ progress: [] });
+      }
+      return res.status(500).json({ message: 'Unable to load player progress.' });
+    }
+    if (!data) return res.status(404).json({ message: 'User not found.' });
+
+    res.json({ progress: normalizeProgressList(data.progress_data || []) });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database configuration is missing.' });
+  }
+});
+
+app.put('/users/:id/progress', requireAuth(), requireUserAccess('id'), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const nextProgress = normalizeProgressList(req.body && Array.isArray(req.body.progress) ? req.body.progress : []);
+
+    const { data, error } = await supabaseClient
+      .from('users')
+      .update({ progress_data: nextProgress })
+      .eq('id', req.params.id)
+      .select('progress_data')
+      .maybeSingle();
+
+    if (error) {
+      if (isMissingProgressColumnError(error)) {
+        return res.json({ progress: nextProgress });
+      }
+      return res.status(500).json({ message: 'Unable to save player progress.' });
+    }
+    if (!data) return res.status(404).json({ message: 'User not found.' });
+
+    res.json({ progress: normalizeProgressList(data.progress_data || []) });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database configuration is missing.' });
+  }
 });
 
 app.put('/profile/:id', requireAuth(), requireUserAccess('id'), async (req, res) => {
-  const { name, email, phone = '' } = req.body;
-  if (!name || !email) return res.status(400).send('Name and email are required.');
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { name, email, phone = '' } = req.body;
+    if (!name || !email) return res.status(400).send('Name and email are required.');
 
-  const { data, error } = await supabase
-    .from('users')
-    .update({ name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim() })
-    .eq('id', req.params.id)
-    .select('*')
-    .maybeSingle();
-  if (error) {
-    if (error.code === '23505') return res.status(409).send('An account with this email already exists.');
-    return res.status(500).send('Unable to update profile.');
+    const { data, error } = await supabaseClient
+      .from('users')
+      .update({ name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim() })
+      .eq('id', req.params.id)
+      .select('*')
+      .maybeSingle();
+    if (error) {
+      if (error.code === '23505') return res.status(409).send('An account with this email already exists.');
+      return res.status(500).send('Unable to update profile.');
+    }
+    if (!data) return res.status(404).send('User not found.');
+    res.json({ user: publicUser(data) });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database configuration is missing.' });
   }
-  if (!data) return res.status(404).send('User not found.');
-  res.json({ user: publicUser(data) });
 });
 
 app.put('/change-password/:id', requireAuth(), requireUserAccess('id'), async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
-  const { data: user, error } = await supabase.from('users').select('*').eq('id', req.params.id).maybeSingle();
-  if (error) return res.status(500).send('Unable to change password.');
-  if (!user) return res.status(404).send('User not found.');
-  if (!verifyPassword(oldPassword || '', user.password_hash)) return res.status(401).send('The current password is incorrect.');
-  if (!newPassword) return res.status(400).send('A new password is required.');
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { oldPassword, newPassword } = req.body;
+    const { data: user, error } = await supabaseClient.from('users').select('*').eq('id', req.params.id).maybeSingle();
+    if (error) return res.status(500).send('Unable to change password.');
+    if (!user) return res.status(404).send('User not found.');
+    if (!verifyPassword(oldPassword || '', user.password_hash)) return res.status(401).send('The current password is incorrect.');
+    if (!newPassword) return res.status(400).send('A new password is required.');
 
-  const { error: updateError } = await supabase.from('users').update({ password_hash: hashPassword(newPassword) }).eq('id', req.params.id);
-  if (updateError) return res.status(500).send('Unable to change password.');
-  res.send('Password changed successfully.');
+    const { error: updateError } = await supabaseClient.from('users').update({ password_hash: hashPassword(newPassword) }).eq('id', req.params.id);
+    if (updateError) return res.status(500).send('Unable to change password.');
+    res.send('Password changed successfully.');
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database configuration is missing.' });
+  }
 });
 
 app.post('/upload', requireAuth(), upload.single('file'), async (req, res) => {

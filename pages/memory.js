@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import { mergeProgressRecord } from "../lib/playerProgress";
 
 const SYMBOLS = ["⚡", "🎯", "🪐", "🚀", "🌙", "💎"];
 
@@ -91,6 +92,12 @@ export default function MemoryPage() {
       const nextBest = bestMoves === 0 || moves < bestMoves ? moves : bestMoves;
       setBestMoves(nextBest);
       window.localStorage.setItem("memory-best", String(nextBest));
+      mergeProgressRecord(
+        { title: "Neon Match", genre: "Puzzle", href: "/memory" },
+        nextBest,
+        "inverse",
+        18,
+      );
     }
   }, [bestMoves, cards.length, matchedSymbols.length, moves]);
 
@@ -116,7 +123,7 @@ export default function MemoryPage() {
         </div>
 
         <div className="dashboard-actions">
-          <BackButton label="← Back" fallback="/games" />
+          <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
           <button

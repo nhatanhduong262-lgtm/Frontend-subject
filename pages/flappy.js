@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import { mergeProgressRecord } from "../lib/playerProgress";
 
 const GAME_WIDTH = 420;
 const GAME_HEIGHT = 560;
@@ -56,6 +57,12 @@ export default function FlappyPage() {
     const updatedBest = Math.max(bestScore, scoreRef.current);
     setBestScore(updatedBest);
     window.localStorage.setItem("flappy-best", String(updatedBest));
+    mergeProgressRecord(
+      { title: "Sky Hopper", genre: "Arcade", href: "/flappy" },
+      updatedBest,
+      "direct",
+      20,
+    );
   }, [bestScore]);
 
   const resetGame = useCallback(() => {
@@ -161,7 +168,7 @@ export default function FlappyPage() {
         </div>
 
         <div className="dashboard-actions">
-          <BackButton label="← Back" fallback="/games" />
+          <BackButton label="← Back" />
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
           <button

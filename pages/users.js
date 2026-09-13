@@ -67,11 +67,10 @@ export default function UsersPage() {
             <p style={{ margin: 0, color: "#475569" }}>A live view of the users stored in Supabase.</p>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <BackButton label="← Back" fallback="/dashboard" />
+            <BackButton label="← Back" />
             <button type="button" onClick={loadUsers} disabled={loading} style={{ border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", padding: "11px 16px", fontWeight: 700, cursor: "pointer" }}>
               {loading ? "Loading..." : "Refresh"}
             </button>
-            <Link href="/devices" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", color: "#0f766e", background: "#ccfbf1", borderRadius: 10, padding: "11px 16px", fontWeight: 700 }}>Devices</Link>
             <Link href="/profile" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", color: "#0f172a", background: "#fff", border: "1px solid #cbd5e1", borderRadius: 10, padding: "11px 16px", fontWeight: 700 }}>Profile</Link>
             <button type="button" onClick={handleLogout} style={{ border: "1px solid #fecaca", borderRadius: 10, background: "#fff1f2", color: "#b91c1c", padding: "11px 16px", fontWeight: 700, cursor: "pointer" }}>Log out</button>
           </div>
@@ -85,10 +84,6 @@ export default function UsersPage() {
           <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, padding: 18 }}>
             <div style={{ color: "#64748b", fontSize: 13 }}>Storage</div>
             <strong style={{ display: "block", marginTop: 8, fontSize: 22 }}>Supabase</strong>
-          </div>
-          <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, padding: 18 }}>
-            <div style={{ color: "#64748b", fontSize: 13 }}>Devices</div>
-            <Link href="/devices" style={{ display: "inline-block", marginTop: 8, color: "#0f766e", fontWeight: 700, textDecoration: "none" }}>Open manager</Link>
           </div>
         </div>
 

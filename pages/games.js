@@ -39,7 +39,7 @@ export default function GamesPage() {
         </div>
 
         <div className="dashboard-actions">
-          <BackButton label="← Back" fallback="/dashboard" />
+          <BackButton label="← Back" />
           <Link href="/dashboard" className="ghost-button">Dashboard</Link>
           <Link href="/profile" className="ghost-button">Profile</Link>
           <button

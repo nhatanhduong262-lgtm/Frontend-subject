@@ -11,7 +11,11 @@ export const config = {
   },
 };
 
-const uploadDir = path.join(process.cwd(), 'server', 'uploads');
+const uploadDir = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(process.cwd(), 'server', 'uploads');
+
+fs.mkdirSync(uploadDir, { recursive: true });
 
 async function ensureAuth(request) {
   const rawToken = request.headers.authorization || '';
