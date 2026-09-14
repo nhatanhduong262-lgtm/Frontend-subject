@@ -5,6 +5,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import BackButton from "../components/BackButton";
 import { DEFAULT_PLAYER_PROGRESS, getStoredPlayerProgress, loadPlayerProgressFromDatabase, subscribeToUserProgress } from "../lib/playerProgress";
 import { getQuestState, claimQuestReward, getRankFromPoints, RANKS } from "../lib/quests";
+import { useUnreadMessages } from "../hooks/useUnreadMessages";
 
 const defaultPlayerProgress = DEFAULT_PLAYER_PROGRESS;
 
@@ -12,6 +13,7 @@ const quickLinks = [
   { label: "Game library", href: "/games" },
   { label: "Progress", href: "/progress" },
   { label: "Profile", href: "/profile" },
+  { label: "Messages", href: "/messages" },
 ];
 
 function AuthGuard({ children }) {
@@ -40,6 +42,7 @@ export default function DashboardPage() {
   const [playerProgress, setPlayerProgress] = useState(() => getStoredPlayerProgress());
   const [questState, setQuestState] = useState(null);
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
+  const unreadCount = useUnreadMessages();
 
   useEffect(() => {
     setQuestState(getQuestState());
@@ -185,6 +188,14 @@ export default function DashboardPage() {
             <Link href="/games" className="ghost-button">Games</Link>
             <Link href="/progress" className="ghost-button">Progress</Link>
             <Link href="/profile" className="ghost-button">Profile</Link>
+            <Link href="/messages" className="ghost-button" style={{ position: "relative" }}>
+              Messages
+              <span style={{ 
+                position: "absolute", top: 6, right: 6, width: 8, height: 8, 
+                background: "#ef4444", borderRadius: "50%",
+                opacity: unreadCount > 0 ? 1 : 0, transition: "opacity 0.2s"
+              }} />
+            </Link>
             <button type="button" className="ghost-button" onClick={handleLogout}>Logout</button>
           </div>
         </header>
@@ -300,9 +311,11 @@ export default function DashboardPage() {
                   <span className="mini-feature-label" style={{ position: 'relative', zIndex: 1, textShadow: game.image ? '0 1px 3px rgba(0,0,0,0.6)' : 'none', color: game.image ? '#f8fafc' : 'inherit' }}>{game.genre}</span>
                   <strong style={{ position: 'relative', zIndex: 1, textShadow: game.image ? '0 2px 4px rgba(0,0,0,0.8)' : 'none', color: game.image ? '#fff' : 'inherit' }}>{game.title}</strong>
                   <div className="mini-progress-line" style={{ position: 'relative', zIndex: 1 }}>
-                    <span style={{ width: `${game.progress}%` }} />
+                    <span style={{ width: `${Math.min(100, ((game.playtime || 0) / 3600) * 100)}%` }} />
                   </div>
-                  <small style={{ position: 'relative', zIndex: 1, textShadow: game.image ? '0 1px 3px rgba(0,0,0,0.6)' : 'none', color: game.image ? '#e2e8f0' : 'inherit' }}>{game.progress}% complete</small>
+                  <small style={{ position: 'relative', zIndex: 1, textShadow: game.image ? '0 1px 3px rgba(0,0,0,0.6)' : 'none', color: game.image ? '#e2e8f0' : 'inherit' }}>
+                    {game.playtime ? `${Math.floor(game.playtime)}s played` : '0s played'}
+                  </small>
                 </Link>
               ))}
             </div>
@@ -313,8 +326,19 @@ export default function DashboardPage() {
             <h2 style={{ marginTop: 0 }}>Quick access</h2>
             <div className="quick-access-list">
               {quickLinks.map((link) => (
-                <Link key={link.label} href={link.href} className="quick-link-item">
+                <Link key={link.label} href={link.href} className="quick-link-item" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   {link.label}
+                  {link.label === "Messages" ? (
+                    <span style={{ 
+                      display: "inline-block", padding: "2px 8px", background: "#ef4444", color: "#fff", 
+                      fontSize: 12, fontWeight: 700, borderRadius: 12,
+                      opacity: unreadCount > 0 ? 1 : 0, pointerEvents: "none", transition: "opacity 0.2s"
+                    }}>
+                      {unreadCount} mới
+                    </span>
+                  ) : (
+                    <span />
+                  )}
                 </Link>
               ))}
             </div>

@@ -29,7 +29,8 @@ export default function ReactionPage() {
       return undefined;
     }
 
-    const savedBest = Number(window.localStorage.getItem("reaction-best") || 0);
+    const uid = window.localStorage.getItem("userId") || "guest";
+    const savedBest = Number(window.localStorage.getItem(`reaction-best-${uid}`) || 0);
     setBestTime(savedBest);
     return () => {
       if (timeoutRef.current) {
@@ -94,7 +95,10 @@ export default function ReactionPage() {
       setScore(nextScore);
       setStatus("idle");
       setMessage(`Reaction: ${safeTime} ms`);
-      window.localStorage.setItem("reaction-best", String(nextBest));
+      const uid = window.localStorage.getItem("userId") || "guest";
+      if (nextBest < bestTime || bestTime === 0) {
+        window.localStorage.setItem(`reaction-best-${uid}`, String(nextBest));
+      }
       
       const reflexScore = Math.max(0, 1000 - safeTime);
       saveScoreToCloud("Pulse Reflex", reflexScore);

@@ -36,7 +36,8 @@ export default function ColorStormPage() {
 
   useEffect(() => {
     if (!window.localStorage.getItem("userId")) router.replace("/login");
-    const saved = Number(window.localStorage.getItem("colorstorm-best") || 0);
+    const uid = window.localStorage.getItem("userId") || "guest";
+    const saved = Number(window.localStorage.getItem(`colorstorm-best-${uid}`) || 0);
     setBestScore(saved);
     return () => { timeoutsRef.current.forEach(clearTimeout); };
   }, [router]);
@@ -108,7 +109,8 @@ export default function ColorStormPage() {
       
       if (finalScore > bestScore) {
         setBestScore(finalScore);
-        window.localStorage.setItem("colorstorm-best", String(finalScore));
+        const uid = window.localStorage.getItem("userId") || "guest";
+        window.localStorage.setItem(`colorstorm-best-${uid}`, String(finalScore));
         fireConfetti();
       }
       return;

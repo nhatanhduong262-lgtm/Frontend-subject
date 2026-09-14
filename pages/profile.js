@@ -298,7 +298,10 @@ function FriendsPanel({ currentUserId, token }) {
                     <span style={{ color: "var(--muted)", fontSize: 13, marginLeft: 8 }}>#{item.user.id}</span>
                   </div>
                 </div>
-                <button onClick={() => handleRemove(item.friendshipId)} style={smallBtn("rgba(239,68,68,0.1)", "#ef4444")}>Remove</button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Link href={`/messages?to=${item.user.id}`} style={{ ...smallBtn("rgba(16, 185, 129, 0.15)", "#10b981"), textDecoration: "none" }}>💬 Message</Link>
+                  <button onClick={() => handleRemove(item.friendshipId)} style={smallBtn("rgba(239,68,68,0.1)", "#ef4444")}>Remove</button>
+                </div>
               </div>
             ))}
           </div>

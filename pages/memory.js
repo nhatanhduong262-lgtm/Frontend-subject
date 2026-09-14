@@ -45,7 +45,8 @@ export default function MemoryPage() {
       return undefined;
     }
 
-    const savedBest = Number(window.localStorage.getItem("memory-best") || 0);
+    const uid = window.localStorage.getItem("userId") || "guest";
+    const savedBest = Number(window.localStorage.getItem(`memory-best-${uid}`) || 0);
     setBestMoves(savedBest || 0);
     resetGame();
     return undefined;
@@ -105,7 +106,8 @@ export default function MemoryPage() {
       }
 
       setBestMoves(nextBest);
-      window.localStorage.setItem("memory-best", String(nextBest));
+      const uid = window.localStorage.getItem("userId") || "guest";
+      window.localStorage.setItem(`memory-best-${uid}`, String(nextBest));
       
       // Points calculation: fewer moves = more points
       const points = Math.max(10, 100 - moves * 2);

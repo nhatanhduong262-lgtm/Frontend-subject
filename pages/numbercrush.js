@@ -38,7 +38,8 @@ export default function NumberCrushPage() {
     if (!window.localStorage.getItem("userId")) {
       router.replace("/login");
     }
-    const saved = Number(window.localStorage.getItem("numbercrush-best") || 0);
+    const uid = window.localStorage.getItem("userId") || "guest";
+    const saved = Number(window.localStorage.getItem(`numbercrush-best-${uid}`) || 0);
     setBestTime(saved);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [router]);
@@ -75,9 +76,10 @@ export default function NumberCrushPage() {
         saveScoreToCloud("Number Crush", score);
         recordGameActivity("Number Crush", score);
         mergeProgressRecord({ title: "Number Crush", genre: "Puzzle", href: "/numbercrush" }, score, "direct", 30000);
+        const uid = window.localStorage.getItem("userId") || "guest";
         if (bestTime === 0 || finalTime < bestTime) {
           setBestTime(finalTime);
-          window.localStorage.setItem("numbercrush-best", String(finalTime));
+          window.localStorage.setItem(`numbercrush-best-${uid}`, String(finalTime));
         }
       }
       setNextTarget(t => t + 1);

@@ -196,15 +196,49 @@ export default function ProgressPage() {
             <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--muted)' }}>Loading top players...</div>
           ) : (
             <div className="game-list">
-              {leaderboard.map((player) => (
-                <div key={player.name} className="game-list-item">
-                  <div>
-                    <strong>#{player.rank} {player.name}</strong>
-                    <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{player.xp.toLocaleString()} XP</div>
+              {leaderboard.map((player) => {
+                const getRankStyle = (rank) => {
+                  switch(rank) {
+                    case 1: return { icon: "👑", color: "#fbbf24", bg: "rgba(251,191,36,0.15)", shadow: "0 0 15px rgba(251,191,36,0.4)", text: "#fbbf24" };
+                    case 2: return { icon: "🥈", color: "#cbd5e1", bg: "rgba(203,213,225,0.15)", shadow: "0 0 10px rgba(203,213,225,0.3)", text: "#cbd5e1" };
+                    case 3: return { icon: "🥉", color: "#d97706", bg: "rgba(217,119,6,0.15)", shadow: "0 0 8px rgba(217,119,6,0.3)", text: "#d97706" };
+                    case 4: 
+                    case 5: return { icon: "🔥", color: "#ef4444", bg: "rgba(239,68,68,0.1)", shadow: "none", text: "#ef4444" };
+                    default: return { icon: "⭐", color: "var(--muted)", bg: "rgba(255,255,255,0.05)", shadow: "none", text: "var(--muted)" };
+                  }
+                };
+                const style = getRankStyle(player.rank);
+
+                return (
+                  <div key={player.name} className="game-list-item" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 42, height: 42, borderRadius: '50%',
+                      background: style.bg, color: style.color,
+                      boxShadow: style.shadow, fontSize: 18,
+                      flexShrink: 0, fontWeight: 800,
+                      border: `1px solid ${style.color}40`
+                    }}>
+                      {style.icon}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <strong style={{ fontSize: 16, color: player.rank <= 3 ? '#fff' : 'inherit' }}>
+                        <span style={{ color: style.text, marginRight: 6 }}>#{player.rank}</span> 
+                        {player.name}
+                      </strong>
+                      <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{player.xp.toLocaleString()} XP</div>
+                    </div>
+                    <span className="progress-badge" style={{ 
+                      background: player.rank === 1 ? 'linear-gradient(90deg, #fbbf24, #f59e0b)' : 
+                                  player.rank === 2 ? 'linear-gradient(90deg, #cbd5e1, #94a3b8)' : 
+                                  player.rank === 3 ? 'linear-gradient(90deg, #d97706, #b45309)' : '',
+                      color: player.rank <= 3 ? '#000' : 'var(--cyan)'
+                    }}>
+                      {player.progress}%
+                    </span>
                   </div>
-                  <span className="progress-badge">{player.progress}%</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </aside>

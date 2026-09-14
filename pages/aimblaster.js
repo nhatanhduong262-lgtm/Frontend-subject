@@ -37,7 +37,8 @@ export default function AimBlasterPage() {
     if (!window.localStorage.getItem("userId")) {
       router.replace("/login");
     }
-    const saved = Number(window.localStorage.getItem("aimblaster-best") || 0);
+    const uid = window.localStorage.getItem("userId") || "guest";
+    const saved = Number(window.localStorage.getItem(`aimblaster-best-${uid}`) || 0);
     setBestScore(saved);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -72,7 +73,8 @@ export default function AimBlasterPage() {
             mergeProgressRecord({ title: "Aim Blaster", genre: "Action", href: "/aimblaster" }, finalScore * 100, "direct", 3000);
             if (finalScore > bestScore) {
               setBestScore(finalScore);
-              window.localStorage.setItem("aimblaster-best", String(finalScore));
+              const uid = window.localStorage.getItem("userId") || "guest";
+              window.localStorage.setItem(`aimblaster-best-${uid}`, String(finalScore));
               fireConfetti();
             }
           }

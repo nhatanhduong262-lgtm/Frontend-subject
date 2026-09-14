@@ -36,6 +36,10 @@ export default function LoginPage() {
       window.localStorage.setItem("userId", String(result.user.id));
       window.localStorage.setItem("profile", JSON.stringify(userProfile));
 
+      // Clear any old non-user-scoped progress/quest data so a new session starts clean
+      window.localStorage.removeItem("pixelpulse-player-progress");
+      window.localStorage.removeItem("pixelpulse-quests");
+
       router.push(resolvedRole === "admin" ? "/admin" : "/dashboard");
     } catch (requestError) {
       setError(requestError.message || "Unable to sign in.");

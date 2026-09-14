@@ -59,7 +59,8 @@ export default function SnakePage() {
       return undefined;
     }
 
-    const savedBest = Number(window.localStorage.getItem("snake-best") || 0);
+    const uid = window.localStorage.getItem("userId") || "guest";
+    const savedBest = Number(window.localStorage.getItem(`snake-best-${uid}`) || 0);
     setBestScore(savedBest);
     setFood(randomFood(createInitialSnake()));
     return undefined;
@@ -127,7 +128,8 @@ export default function SnakePage() {
           }
           
           setBestScore(updatedBest);
-          window.localStorage.setItem("snake-best", String(updatedBest));
+          const uid = window.localStorage.getItem("userId") || "guest";
+          window.localStorage.setItem(`snake-best-${uid}`, String(updatedBest));
           mergeProgressRecord(
             { title: "Neon Snake", genre: "Arcade", href: "/snake" },
             updatedBest,

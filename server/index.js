@@ -74,6 +74,8 @@ function normalizeProgressList(value) {
       title: String(entry.title || 'Untitled game'),
       genre: String(entry.genre || 'Arcade'),
       progress: Number.isFinite(Number(entry.progress)) ? Math.min(100, Math.max(0, Number(entry.progress))) : 0,
+      score: Number(entry.score) || 0,
+      playtime: Number(entry.playtime) || 0,
       href: entry.href || '/games',
       updatedAt: entry.updatedAt || new Date().toISOString(),
     }));
@@ -595,6 +597,124 @@ app.post('/friends/remove', requireAuth(), async (req, res) => {
     if (error) return res.status(500).json({ message: 'Unable to remove friend.' });
 
     res.json({ message: 'Friend removed.' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+// --- MESSAGING ENDPOINTS ---
+
+app.get('/messages/unread-count', requireAuth(), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const userId = req.user.userId;
+
+    const { data, error, count } = await supabaseClient
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('receiver_id', userId)
+      .is('read_at', null);
+
+    if (error) {
+      if (error.code === '42P01') return res.json({ count: 0 }); // Table doesn't exist
+      return res.status(500).json({ message: 'Unable to fetch unread count.' });
+    }
+
+    res.json({ count: count || 0 });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+app.post('/messages/read/:friendId', requireAuth(), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const userId = req.user.userId;
+    const friendId = Number(req.params.friendId);
+
+    const { error } = await supabaseClient
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('receiver_id', userId)
+      .eq('sender_id', friendId)
+      .is('read_at', null);
+
+    if (error && error.code !== '42P01') {
+      console.error(error);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false });
+  }
+});
+
+app.get('/messages/:friendId', requireAuth(), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const userId = req.user.userId;
+    const friendId = Number(req.params.friendId);
+
+    if (!friendId) return res.status(400).json({ message: 'friendId is required.' });
+
+    // Validate friendship exists
+    const { data: friendship, error: friendErr } = await supabaseClient
+      .from('friendships')
+      .select('status')
+      .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`)
+      .eq('status', 'accepted')
+      .maybeSingle();
+
+    if (friendErr || !friendship) return res.status(403).json({ message: 'Must be friends to message.' });
+
+    const { data: messages, error } = await supabaseClient
+      .from('messages')
+      .select('*')
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${userId})`)
+      .order('created_at', { ascending: true })
+      .limit(100);
+
+    if (error) {
+      if (error.code === '42P01') {
+        // Table doesn't exist yet
+        return res.json({ messages: [] });
+      }
+      return res.status(500).json({ message: 'Unable to load messages.' });
+    }
+
+    res.json({ messages: messages || [] });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+app.post('/messages', requireAuth(), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const userId = req.user.userId;
+    const { receiverId, content } = req.body;
+
+    if (!receiverId || !content || !content.trim()) {
+      return res.status(400).json({ message: 'receiverId and content are required.' });
+    }
+
+    const { data: friendship, error: friendErr } = await supabaseClient
+      .from('friendships')
+      .select('status')
+      .or(`and(user_id.eq.${userId},friend_id.eq.${Number(receiverId)}),and(user_id.eq.${Number(receiverId)},friend_id.eq.${userId})`)
+      .eq('status', 'accepted')
+      .maybeSingle();
+
+    if (friendErr || !friendship) return res.status(403).json({ message: 'Must be friends to message.' });
+
+    const { data: message, error } = await supabaseClient
+      .from('messages')
+      .insert([{ sender_id: userId, receiver_id: Number(receiverId), content: content.trim() }])
+      .select()
+      .single();
+
+    if (error) return res.status(500).json({ message: 'Unable to send message.' });
+
+    res.json({ message });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Database error.' });
   }
