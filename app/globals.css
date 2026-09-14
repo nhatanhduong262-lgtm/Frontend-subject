@@ -22,24 +22,24 @@
 }
 
 html[data-theme="light"] {
-  --bg: #f3f7fd;
-  --bg-strong: #eaf1fa;
-  --panel: rgba(255, 255, 255, 0.85);
-  --panel-soft: rgba(255, 255, 255, 0.65);
-  --panel-strong: rgba(255, 255, 255, 0.98);
-  --text: #1a2333;
-  --muted: #5e6b82;
-  --accent: #6d5efc;
-  --accent-strong: #5b4ae5;
+  --bg: #f8fafc;
+  --bg-strong: #e2e8f0;
+  --panel: rgba(255, 255, 255, 0.92);
+  --panel-soft: rgba(255, 255, 255, 0.75);
+  --panel-strong: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --accent-strong: #4338ca;
   --cyan: #0284c7;
   --mint: #059669;
   --pink: #db2777;
   --gold: #d97706;
   --danger: #e11d48;
-  --border: rgba(0, 0, 0, 0.08);
-  --shadow: 0 28px 70px rgba(0, 0, 0, 0.06);
-  --btn-ghost: rgba(0, 0, 0, 0.06);
-  --btn-ghost-hover: rgba(0, 0, 0, 0.12);
+  --border: rgba(15, 23, 42, 0.15);
+  --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  --btn-ghost: rgba(15, 23, 42, 0.06);
+  --btn-ghost-hover: rgba(15, 23, 42, 0.12);
 }
 
 @theme inline {

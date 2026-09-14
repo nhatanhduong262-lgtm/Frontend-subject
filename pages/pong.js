@@ -6,12 +6,15 @@ import Leaderboard from "../components/Leaderboard";
 import { createInitialPongState, stepPongState } from "../server/pongLogic";
 import { useGameEffects } from "../context/GameEffectsContext";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { recordGameActivity } from "../lib/quests";
+import { usePlaytime } from "../hooks/usePlaytime";
 
 const PADDLE_HEIGHT = 100;
 const BOARD_WIDTH = 800;
 const BOARD_HEIGHT = 480;
 
 export default function PongPage() {
+  usePlaytime({ title: "Pong Arena", genre: "Arcade", href: "/pong" });
   const router = useRouter();
   const { isMuted, toggleMute, playPaddleHitSound, playWallHitSound, playScoreSound, playGameOverSound, saveScoreToCloud } = useGameEffects();
   const [state, setState] = useState(createInitialPongState());
@@ -68,6 +71,7 @@ export default function PongPage() {
           playGameOverSound();
           const finalScore = Math.max(nextState.leftScore, nextState.rightScore);
           saveScoreToCloud("Pong Arena", finalScore);
+          recordGameActivity("Pong Arena", finalScore);
           mergeProgressRecord(
             { title: "Pong Arena", genre: "Arcade", href: "/pong" },
             finalScore,

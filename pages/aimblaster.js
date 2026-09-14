@@ -4,7 +4,9 @@ import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import Leaderboard from "../components/Leaderboard";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { recordGameActivity } from "../lib/quests";
 import { useGameEffects } from "../context/GameEffectsContext";
+import { usePlaytime } from "../hooks/usePlaytime";
 
 const GAME_DURATION = 20; // seconds
 const TARGET_SIZE = 64;
@@ -18,6 +20,7 @@ function randomTarget(containerW, containerH) {
 }
 
 export default function AimBlasterPage() {
+  usePlaytime({ title: "Aim Blaster", genre: "Action", href: "/aimblaster" });
   const router = useRouter();
   const { isMuted, toggleMute, playScoreSound, playGameOverSound, playErrorSound, fireConfetti, saveScoreToCloud } = useGameEffects();
   const [status, setStatus] = useState("idle"); // idle | playing | over
@@ -65,7 +68,8 @@ export default function AimBlasterPage() {
           const finalScore = scoreRef.current;
           if (finalScore > 0) {
             saveScoreToCloud("Aim Blaster", finalScore * 100);
-            mergeProgressRecord({ title: "Aim Blaster", genre: "Action", href: "/aimblaster" }, finalScore, "direct", 30);
+            recordGameActivity("Aim Blaster", finalScore * 100);
+            mergeProgressRecord({ title: "Aim Blaster", genre: "Action", href: "/aimblaster" }, finalScore * 100, "direct", 3000);
             if (finalScore > bestScore) {
               setBestScore(finalScore);
               window.localStorage.setItem("aimblaster-best", String(finalScore));

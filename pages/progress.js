@@ -3,12 +3,22 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import { DEFAULT_PLAYER_PROGRESS, getStoredPlayerProgress, loadPlayerProgressFromDatabase, subscribeToUserProgress } from "../lib/playerProgress";
+import { getQuestState } from "../lib/quests";
 
 export default function ProgressPage() {
   const router = useRouter();
   const [playerProgress, setPlayerProgress] = useState(DEFAULT_PLAYER_PROGRESS);
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+  const [questState, setQuestState] = useState(null);
+
+  useEffect(() => {
+    setQuestState(getQuestState());
+    
+    const handleQuestUpdate = (e) => setQuestState(e.detail);
+    window.addEventListener('pixelpulse-quests-updated', handleQuestUpdate);
+    return () => window.removeEventListener('pixelpulse-quests-updated', handleQuestUpdate);
+  }, []);
 
   useEffect(() => {
     if (!window.localStorage.getItem("userId")) {
@@ -96,9 +106,21 @@ export default function ProgressPage() {
   };
 
   const averageProgress = Math.round(playerProgress.reduce((sum, game) => sum + Number(game.progress || 0), 0) / Math.max(playerProgress.length, 1));
-  const completedStages = playerProgress.filter((game) => Number(game.progress || 0) >= 80).length;
-  const xp = playerProgress.reduce((sum, game) => sum + Number(game.progress || 0) * 120, 0);
+  const completedQuests = questState?.activeQuests?.filter(q => q.claimed || q.current >= q.target).length || 0;
+  const totalQuests = questState?.activeQuests?.length || 3;
+  const xp = playerProgress.reduce((sum, game) => sum + (Number(game.score) || 0), 0);
   const level = Math.max(1, Math.round(averageProgress / 5));
+
+  const formatPlaytime = (seconds) => {
+    if (!seconds || seconds <= 0) return '0s';
+    if (seconds < 60) return `${seconds}s`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    if (m < 60) return `${m}m ${s}s`;
+    const h = Math.floor(m / 60);
+    const m_rem = m % 60;
+    return `${h}h ${m_rem}m`;
+  };
 
   return (
     <main className="dashboard-shell" style={{ minHeight: "100vh" }}>
@@ -132,7 +154,7 @@ export default function ProgressPage() {
         </div>
         <div className="stat-card">
           <span className="label">Stages cleared</span>
-          <strong>{completedStages}/{playerProgress.length}</strong>
+          <strong>{completedQuests}/{totalQuests}</strong>
         </div>
         <div className="stat-card">
           <span className="label">Completion</span>
@@ -145,7 +167,7 @@ export default function ProgressPage() {
           <h2>Stage progression</h2>
           <div className="game-list">
             {playerProgress.map((game) => {
-              const status = game.progress === 100 ? "Complete" : game.progress > 0 ? "In progress" : "Locked";
+              const status = game.playtime > 0 ? "Played" : "Not played yet";
               return (
                 <Link href={game.href || "/dashboard"} key={game.title} className="game-list-item" style={{ display: 'flex', gap: 16 }}>
                   {game.image && (
@@ -158,7 +180,9 @@ export default function ProgressPage() {
                     <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{status}</div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <span className="progress-badge">{game.progress}%</span>
+                    <span className="progress-badge" style={{ minWidth: 60, textAlign: "center" }}>
+                      {formatPlaytime(game.playtime)}
+                    </span>
                   </div>
                 </Link>
               );

@@ -4,7 +4,9 @@ import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import Leaderboard from "../components/Leaderboard";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { recordGameActivity } from "../lib/quests";
 import { useGameEffects } from "../context/GameEffectsContext";
+import { usePlaytime } from "../hooks/usePlaytime";
 
 const GRID_SIZE = 18;
 const TICK_MS = 120;
@@ -38,6 +40,7 @@ function randomFood(snake) {
 }
 
 export default function SnakePage() {
+  usePlaytime({ title: "Neon Snake", genre: "Arcade", href: "/snake" });
   const router = useRouter();
   const { isMuted, toggleMute, playSnakeEatSound, playGameOverSound, fireConfetti, saveScoreToCloud } = useGameEffects();
   const [snake, setSnake] = useState(createInitialSnake());
@@ -75,6 +78,7 @@ export default function SnakePage() {
   useEffect(() => {
     if (status === "game-over" && score > 0) {
       saveScoreToCloud("Neon Snake", score);
+      recordGameActivity("Neon Snake", score);
     }
   }, [status, score, saveScoreToCloud]);
 

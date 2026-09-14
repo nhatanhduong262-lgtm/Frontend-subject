@@ -4,12 +4,15 @@ import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import Leaderboard from "../components/Leaderboard";
 import { useGameEffects } from "../context/GameEffectsContext";
+import { recordGameActivity } from "../lib/quests";
+import { usePlaytime } from "../hooks/usePlaytime";
 
 function rollDie() {
   return Math.floor(Math.random() * 6) + 1;
 }
 
 export default function DicePage() {
+  usePlaytime({ title: "Lucky Dice", genre: "Chance", href: "/dice" });
   const router = useRouter();
   const { isMuted, toggleMute, playDiceRollSound, playScoreSound, playGameOverSound, saveScoreToCloud } = useGameEffects();
   const [playerRoll, setPlayerRoll] = useState(1);
@@ -46,6 +49,7 @@ export default function DicePage() {
         setTimeout(() => {
           playScoreSound();
           saveScoreToCloud("Lucky Dice", nextScore);
+          recordGameActivity("Lucky Dice", nextScore);
         }, 400); // play win sound after roll sound finishes
       } else if (player < bot) {
         setBotScore((current) => current + 1);

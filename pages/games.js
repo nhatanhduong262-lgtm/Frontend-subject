@@ -3,7 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import ThemeToggle from "../components/ThemeToggle";
 import BackButton from "../components/BackButton";
-import { getQuestState, getRankFromPoints } from "../lib/quests";
+import { getQuestState, getRankFromPoints, claimQuestReward } from "../lib/quests";
+import { getStoredPlayerProgress } from "../lib/playerProgress";
 
 const demoGames = [
   { id: 1, title: "Sky Hopper", genre: "Arcade", stage: "Flappy-style", progress: 78, status: "Live", href: "/flappy", image: "/images/sky_hopper_1789299722470.png" },
@@ -27,6 +28,7 @@ export default function GamesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [questState, setQuestState] = useState(null);
+  const [playerProgress, setPlayerProgress] = useState([]);
 
   useEffect(() => {
     if (!window.localStorage.getItem("userId")) {
@@ -37,22 +39,45 @@ export default function GamesPage() {
     setQuestState(getQuestState());
     const handleQuestUpdate = (e) => setQuestState(e.detail);
     window.addEventListener('pixelpulse-quests-updated', handleQuestUpdate);
+
+    setPlayerProgress(getStoredPlayerProgress());
+    const handleProgressUpdate = (e) => setPlayerProgress(Array.isArray(e.detail) ? e.detail : getStoredPlayerProgress());
+    window.addEventListener('pixelpulse-progress-updated', handleProgressUpdate);
     
     return () => {
       window.removeEventListener('pixelpulse-quests-updated', handleQuestUpdate);
+      window.removeEventListener('pixelpulse-progress-updated', handleProgressUpdate);
     };
   }, [router]);
   
   const currentRank = getRankFromPoints(questState?.totalPoints || 0);
 
+  const mergedGames = useMemo(() => {
+    return demoGames.map(game => {
+       const progressRecord = playerProgress.find(p => p.title === game.title);
+       return { ...game, playtime: progressRecord?.playtime || 0 };
+    });
+  }, [playerProgress]);
+
   const filteredGames = useMemo(() => {
-    return demoGames.filter((game) => {
+    return mergedGames.filter((game) => {
       const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             game.stage.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesGenre = selectedGenre === "All" || game.genre === selectedGenre;
       return matchesSearch && matchesGenre;
     });
-  }, [searchQuery, selectedGenre]);
+  }, [searchQuery, selectedGenre, mergedGames]);
+
+  const formatPlaytime = (seconds) => {
+    if (!seconds || seconds <= 0) return '0s';
+    if (seconds < 60) return `${seconds}s`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    if (m < 60) return `${m}m ${s}s`;
+    const h = Math.floor(m / 60);
+    const m_rem = m % 60;
+    return `${h}h ${m_rem}m`;
+  };
 
   return (
     <main className="dashboard-shell" style={{ minHeight: "100vh" }}>
@@ -99,7 +124,7 @@ export default function GamesPage() {
         </div>
         <div className="stat-card">
           <span className="label">Player rank</span>
-          <strong style={{ background: currentRank.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <strong style={{ backgroundImage: currentRank.gradient, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>
             {currentRank.name}
           </strong>
         </div>
@@ -169,7 +194,9 @@ export default function GamesPage() {
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span className="progress-badge">{game.progress}%</span>
+                    <span className="progress-badge" style={{ minWidth: 60, textAlign: "center" }}>
+                      {formatPlaytime(game.playtime)}
+                    </span>
                     <Link href={game.href || "/dashboard"} className="primary-button" style={{ minHeight: 40, padding: "0 18px" }}>
                       Play now
                     </Link>
@@ -183,20 +210,31 @@ export default function GamesPage() {
         <aside className="panel-card">
           <h2>Current challenges</h2>
           <div className="game-list">
-            <div className="game-list-item">
-              <div>
-                <strong>Boss rush</strong>
-                <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>3 matches left</div>
-              </div>
-              <span className="progress-badge">Ready</span>
-            </div>
-            <div className="game-list-item">
-              <div>
-                <strong>XP boost</strong>
-                <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>+1200 points</div>
-              </div>
-              <span className="progress-badge">Active</span>
-            </div>
+            {questState?.activeQuests?.map(quest => {
+              const isReady = quest.current >= quest.target && !quest.claimed;
+              const statusBadge = quest.claimed ? "Claimed" : "Active";
+              return (
+                <div key={quest.id} className="game-list-item">
+                  <div>
+                    <strong>{quest.title}</strong>
+                    <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
+                      {quest.current} / {quest.target} • +{quest.reward} points
+                    </div>
+                  </div>
+                  {isReady ? (
+                    <button 
+                      onClick={() => claimQuestReward(quest.id)}
+                      className="primary-button" 
+                      style={{ padding: "6px 14px", minHeight: "unset", fontSize: "0.85rem", background: "linear-gradient(135deg, #10b981, #059669)" }}
+                    >
+                      Claim
+                    </button>
+                  ) : (
+                    <span className="progress-badge">{statusBadge}</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </aside>
       </div>

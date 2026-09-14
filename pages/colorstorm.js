@@ -4,7 +4,9 @@ import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import Leaderboard from "../components/Leaderboard";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { recordGameActivity } from "../lib/quests";
 import { useGameEffects } from "../context/GameEffectsContext";
+import { usePlaytime } from "../hooks/usePlaytime";
 
 const COLORS = [
   { id: "red",    label: "🔴", bg: "#ef4444", shadow: "rgba(239,68,68,0.7)" },
@@ -17,6 +19,7 @@ const SHOW_DURATION = 600; // ms each color shows
 const PAUSE_DURATION = 200; // gap between colors
 
 export default function ColorStormPage() {
+  usePlaytime({ title: "Color Storm", genre: "Memory", href: "/colorstorm" });
   const router = useRouter();
   const { isMuted, toggleMute, playCardFlipSound, playMatchSuccessSound, playMismatchSound, playGameOverSound, fireConfetti, saveScoreToCloud } = useGameEffects();
 
@@ -100,7 +103,8 @@ export default function ColorStormPage() {
       
       const finalScore = score;
       saveScoreToCloud("Color Storm", finalScore * 100);
-      mergeProgressRecord({ title: "Color Storm", genre: "Memory", href: "/colorstorm" }, Math.min(100, finalScore * 5), "direct", 100);
+      recordGameActivity("Color Storm", finalScore * 100);
+      mergeProgressRecord({ title: "Color Storm", genre: "Memory", href: "/colorstorm" }, finalScore * 100, "direct", 2000);
       
       if (finalScore > bestScore) {
         setBestScore(finalScore);

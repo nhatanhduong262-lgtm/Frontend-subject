@@ -351,7 +351,7 @@ app.get('/leaderboard-global', async (req, res) => {
     
     const leaderboard = data.map(user => {
       const progressList = normalizeProgressList(user.progress_data || []);
-      const xp = progressList.reduce((sum, game) => sum + Number(game.progress || 0) * 120, 0);
+      const xp = progressList.reduce((sum, game) => sum + (Number(game.score) || 0), 0);
       const avg = Math.round(progressList.reduce((sum, game) => sum + Number(game.progress || 0), 0) / Math.max(progressList.length, 1));
       return { name: user.name || 'Unknown', xp, progress: avg };
     })
@@ -408,6 +408,193 @@ app.post('/game_logs', requireAuth(), async (req, res) => {
     if (error) return res.status(500).json({ message: 'Unable to save game log.' });
 
     res.status(201).json({ message: 'Game score saved successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+// ─── Friend System ────────────────────────────────────────────────────────────
+
+// GET /users/:id/public — look up any user by ID (public info only)
+app.get('/users/:id/public', async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const userId = Number(req.params.id);
+    if (!userId || !Number.isFinite(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID.' });
+    }
+
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('id, name')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) return res.status(404).json({ message: 'User not found.' });
+
+    res.json({ id: data.id, name: data.name });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+// POST /friends/request — send a friend request
+app.post('/friends/request', requireAuth(), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const userId = req.user.userId;
+    const { friendId } = req.body;
+
+    if (!friendId || Number(friendId) === userId) {
+      return res.status(400).json({ message: 'Invalid friend ID.' });
+    }
+
+    // Check if user exists
+    const { data: target, error: lookupErr } = await supabaseClient
+      .from('users')
+      .select('id, name')
+      .eq('id', Number(friendId))
+      .single();
+    if (lookupErr || !target) return res.status(404).json({ message: 'User not found.' });
+
+    // Check for existing relationship in either direction
+    const { data: existing } = await supabaseClient
+      .from('friendships')
+      .select('id, status, user_id, friend_id')
+      .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`);
+
+    if (existing && existing.length > 0) {
+      const rel = existing[0];
+      if (rel.status === 'accepted') return res.status(409).json({ message: 'Already friends.' });
+      return res.status(409).json({ message: 'Friend request already sent.' });
+    }
+
+    const { error } = await supabaseClient
+      .from('friendships')
+      .insert({ user_id: userId, friend_id: Number(friendId), status: 'pending' });
+
+    if (error) return res.status(500).json({ message: 'Unable to send friend request.' });
+
+    res.status(201).json({ message: `Friend request sent to ${target.name}.` });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+// GET /friends — list current friends and incoming pending requests
+app.get('/friends', requireAuth(), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const userId = req.user.userId;
+
+    // Get all friendship rows involving this user
+    const { data, error } = await supabaseClient
+      .from('friendships')
+      .select('id, user_id, friend_id, status, created_at')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+
+    if (error) return res.status(500).json({ message: 'Unable to fetch friends.' });
+
+    // Gather all relevant user IDs
+    const otherIds = [...new Set((data || []).map(row =>
+      row.user_id === userId ? row.friend_id : row.user_id
+    ))];
+
+    let usersMap = {};
+    if (otherIds.length > 0) {
+      const { data: usersData } = await supabaseClient
+        .from('users')
+        .select('id, name')
+        .in('id', otherIds);
+      (usersData || []).forEach(u => { usersMap[u.id] = u; });
+    }
+
+    const friends = [];
+    const pendingIncoming = [];
+    const pendingOutgoing = [];
+
+    for (const row of (data || [])) {
+      const otherId = row.user_id === userId ? row.friend_id : row.user_id;
+      const otherUser = usersMap[otherId] || { id: otherId, name: 'Unknown' };
+
+      if (row.status === 'accepted') {
+        friends.push({ friendshipId: row.id, user: otherUser });
+      } else if (row.status === 'pending') {
+        if (row.friend_id === userId) {
+          pendingIncoming.push({ friendshipId: row.id, user: otherUser });
+        } else {
+          pendingOutgoing.push({ friendshipId: row.id, user: otherUser });
+        }
+      }
+    }
+
+    res.json({ friends, pendingIncoming, pendingOutgoing });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+// POST /friends/accept — accept a pending friend request
+app.post('/friends/accept', requireAuth(), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const userId = req.user.userId;
+    const { friendshipId } = req.body;
+
+    if (!friendshipId) return res.status(400).json({ message: 'friendshipId is required.' });
+
+    // Ensure the current user is the recipient (friend_id)
+    const { data: row, error: lookupErr } = await supabaseClient
+      .from('friendships')
+      .select('id, user_id, friend_id, status')
+      .eq('id', Number(friendshipId))
+      .single();
+
+    if (lookupErr || !row) return res.status(404).json({ message: 'Friend request not found.' });
+    if (row.friend_id !== userId) return res.status(403).json({ message: 'Not authorized.' });
+    if (row.status === 'accepted') return res.status(409).json({ message: 'Already accepted.' });
+
+    const { error } = await supabaseClient
+      .from('friendships')
+      .update({ status: 'accepted' })
+      .eq('id', Number(friendshipId));
+
+    if (error) return res.status(500).json({ message: 'Unable to accept friend request.' });
+
+    res.json({ message: 'Friend request accepted.' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Database error.' });
+  }
+});
+
+// POST /friends/remove — remove a friend or cancel a request
+app.post('/friends/remove', requireAuth(), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const userId = req.user.userId;
+    const { friendshipId } = req.body;
+
+    if (!friendshipId) return res.status(400).json({ message: 'friendshipId is required.' });
+
+    const { data: row, error: lookupErr } = await supabaseClient
+      .from('friendships')
+      .select('id, user_id, friend_id')
+      .eq('id', Number(friendshipId))
+      .single();
+
+    if (lookupErr || !row) return res.status(404).json({ message: 'Friendship not found.' });
+    if (row.user_id !== userId && row.friend_id !== userId) {
+      return res.status(403).json({ message: 'Not authorized.' });
+    }
+
+    const { error } = await supabaseClient
+      .from('friendships')
+      .delete()
+      .eq('id', Number(friendshipId));
+
+    if (error) return res.status(500).json({ message: 'Unable to remove friend.' });
+
+    res.json({ message: 'Friend removed.' });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Database error.' });
   }

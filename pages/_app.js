@@ -2,6 +2,7 @@ import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import '../app/globals.css';
 import { AuthProvider } from '../context/AuthContext';
 import { GameEffectsProvider } from '../context/GameEffectsContext';
+import RankThemeWrapper from '../components/RankThemeWrapper';
 
 const theme = createTheme({
   palette: {
@@ -33,10 +34,12 @@ export default function App({ Component, pageProps }) {
   return (
     <AuthProvider>
       <GameEffectsProvider>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <Component {...pageProps} />
-        </ThemeProvider>
+        <RankThemeWrapper>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Component {...pageProps} />
+          </ThemeProvider>
+        </RankThemeWrapper>
       </GameEffectsProvider>
     </AuthProvider>
   );

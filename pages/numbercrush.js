@@ -4,7 +4,9 @@ import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import Leaderboard from "../components/Leaderboard";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { recordGameActivity } from "../lib/quests";
 import { useGameEffects } from "../context/GameEffectsContext";
+import { usePlaytime } from "../hooks/usePlaytime";
 
 const GRID_SIZE = 16; // 4x4 numbers 1-16
 
@@ -18,6 +20,7 @@ function shuffle(arr) {
 }
 
 export default function NumberCrushPage() {
+  usePlaytime({ title: "Number Crush", genre: "Puzzle", href: "/numbercrush" });
   const router = useRouter();
   const { isMuted, toggleMute, playScoreSound, playGameOverSound, playErrorSound, fireConfetti, saveScoreToCloud } = useGameEffects();
 
@@ -70,7 +73,8 @@ export default function NumberCrushPage() {
         fireConfetti();
         const score = Math.max(0, 30000 - finalTime - mistakes * 500);
         saveScoreToCloud("Number Crush", score);
-        mergeProgressRecord({ title: "Number Crush", genre: "Puzzle", href: "/numbercrush" }, Math.round(score / 300), "direct", 100);
+        recordGameActivity("Number Crush", score);
+        mergeProgressRecord({ title: "Number Crush", genre: "Puzzle", href: "/numbercrush" }, score, "direct", 30000);
         if (bestTime === 0 || finalTime < bestTime) {
           setBestTime(finalTime);
           window.localStorage.setItem("numbercrush-best", String(finalTime));

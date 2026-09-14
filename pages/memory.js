@@ -4,7 +4,9 @@ import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import Leaderboard from "../components/Leaderboard";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { recordGameActivity } from "../lib/quests";
 import { useGameEffects } from "../context/GameEffectsContext";
+import { usePlaytime } from "../hooks/usePlaytime";
 
 const SYMBOLS = ["⚡", "🎯", "🪐", "🚀", "🌙", "💎"];
 
@@ -17,6 +19,7 @@ function shuffleCards() {
 }
 
 export default function MemoryPage() {
+  usePlaytime({ title: "Neon Match", genre: "Puzzle", href: "/memory" });
   const router = useRouter();
   const { isMuted, toggleMute, playCardFlipSound, playMatchSuccessSound, playMismatchSound, playScoreSound, fireConfetti, saveScoreToCloud } = useGameEffects();
   const [cards, setCards] = useState([]);
@@ -107,12 +110,13 @@ export default function MemoryPage() {
       // Points calculation: fewer moves = more points
       const points = Math.max(10, 100 - moves * 2);
       saveScoreToCloud("Neon Match", points);
+      recordGameActivity("Neon Match", points);
       
       mergeProgressRecord(
         { title: "Neon Match", genre: "Puzzle", href: "/memory" },
-        nextBest,
-        "inverse",
-        18,
+        points,
+        "direct",
+        100,
       );
     }
   }, [bestMoves, cards.length, matchedSymbols.length, moves, isWon, playScoreSound, fireConfetti, saveScoreToCloud]);

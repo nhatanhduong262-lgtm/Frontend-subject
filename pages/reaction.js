@@ -4,9 +4,12 @@ import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import Leaderboard from "../components/Leaderboard";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { recordGameActivity } from "../lib/quests";
 import { useGameEffects } from "../context/GameEffectsContext";
+import { usePlaytime } from "../hooks/usePlaytime";
 
 export default function ReactionPage() {
+  usePlaytime({ title: "Pulse Reflex", genre: "Speed", href: "/reaction" });
   const router = useRouter();
   const { isMuted, toggleMute, playAlertSound, playErrorSound, playScoreSound, fireConfetti, saveScoreToCloud } = useGameEffects();
   const [status, setStatus] = useState("idle");
@@ -95,12 +98,13 @@ export default function ReactionPage() {
       
       const reflexScore = Math.max(0, 1000 - safeTime);
       saveScoreToCloud("Pulse Reflex", reflexScore);
+      recordGameActivity("Pulse Reflex", reflexScore);
       
       mergeProgressRecord(
         { title: "Pulse Reflex", genre: "Speed", href: "/reaction" },
-        nextBest,
-        "inverse",
-        700,
+        reflexScore,
+        "direct",
+        300,
       );
       return;
     }

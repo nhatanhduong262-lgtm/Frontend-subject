@@ -92,37 +92,65 @@ export function GameEffectsProvider({ children }) {
     }, 250);
   }, []);
 
-  // Cloud Sync Toast
-  const showCloudSyncToast = useCallback((msg = "☁️ Đã lưu kỷ lục lên Server!") => {
-    setToastMessage(msg);
+  const showCloudSyncToast = useCallback((msg = "☁️ Record saved to cloud!") => {
+    // Basic DOM-based toast because this can be called from anywhere
+    const toast = document.createElement("div");
+    toast.innerText = msg;
+    toast.style.position = "fixed";
+    toast.style.bottom = "20px";
+    toast.style.right = "20px";
+    toast.style.background = "linear-gradient(135deg, #4f46e5, #3b82f6)";
+    toast.style.color = "#fff";
+    toast.style.padding = "12px 20px";
+    toast.style.borderRadius = "12px";
+    toast.style.boxShadow = "0 8px 16px rgba(59, 130, 246, 0.4)";
+    toast.style.zIndex = "9999";
+    toast.style.fontSize = "14px";
+    toast.style.fontWeight = "600";
+    toast.style.transition = "all 0.3s ease";
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(20px)";
+    
+    document.body.appendChild(toast);
+    
+    requestAnimationFrame(() => {
+      toast.style.opacity = "1";
+      toast.style.transform = "translateY(0)";
+    });
+    
     setTimeout(() => {
-      setToastMessage(null);
-    }, 3000); // hide after 3 seconds
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(20px)";
+      setTimeout(() => {
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast);
+        }
+      }, 300);
+    }, 2500);
   }, []);
 
   const saveScoreToCloud = useCallback(async (gameName, score) => {
-    if (score <= 0) return;
-    
-    // Automatically record activity for daily quests
-    recordGameActivity(gameName, score);
-    
     try {
-      const token = window.localStorage.getItem("token");
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
-      await fetch(`${apiUrl}/game_logs`, {
+      if (score > 0) {
+        recordGameActivity(gameName, score);
+      }
+      
+      const userId = window.localStorage.getItem("userId");
+      if (!userId) return;
+      
+      const payload = { userId, game: gameName, score: Number(score) };
+      
+      const response = await fetch('/api/submit-score', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          game_name: gameName,
-          score: score
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      showCloudSyncToast(`☁️ Đã lưu ${score} điểm lên Server!`);
+      
+      if (response.ok) {
+        showCloudSyncToast(`☁️ Saved ${score} points to cloud!`);
+      }
     } catch (err) {
-      console.error("Failed to sync score", err);
+      console.error("Failed to sync score to cloud", err);
     }
   }, [showCloudSyncToast]);
 

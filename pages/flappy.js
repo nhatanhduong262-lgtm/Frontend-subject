@@ -3,8 +3,10 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import { mergeProgressRecord } from "../lib/playerProgress";
+import { recordGameActivity } from "../lib/quests";
 import Leaderboard from "../components/Leaderboard";
 import { useGameEffects } from "../context/GameEffectsContext";
+import { usePlaytime } from "../hooks/usePlaytime";
 
 const GAME_WIDTH = 420;
 const GAME_HEIGHT = 560;
@@ -31,6 +33,7 @@ function createPipe() {
 }
 
 export default function FlappyPage() {
+  usePlaytime({ title: "Sky Hopper", genre: "Arcade", href: "/flappy" });
   const router = useRouter();
   const [gameState, setGameState] = useState("ready");
   const [score, setScore] = useState(0);
@@ -78,6 +81,7 @@ export default function FlappyPage() {
 
     // Save to Cloud and show Toast
     saveScoreToCloud("Sky Hopper", scoreRef.current);
+    recordGameActivity("Sky Hopper", scoreRef.current);
   }, [bestScore, playGameOverSound, fireConfetti, saveScoreToCloud]);
 
   const resetGame = useCallback(() => {

@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import ThemeToggle from "../components/ThemeToggle";
 import BackButton from "../components/BackButton";
 import { DEFAULT_PLAYER_PROGRESS, getStoredPlayerProgress, loadPlayerProgressFromDatabase, subscribeToUserProgress } from "../lib/playerProgress";
-import { getQuestState, claimQuestReward, getRankFromPoints } from "../lib/quests";
+import { getQuestState, claimQuestReward, getRankFromPoints, RANKS } from "../lib/quests";
 
 const defaultPlayerProgress = DEFAULT_PLAYER_PROGRESS;
 
@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState(null);
   const [playerProgress, setPlayerProgress] = useState(() => getStoredPlayerProgress());
   const [questState, setQuestState] = useState(null);
+  const [isRankModalOpen, setIsRankModalOpen] = useState(false);
 
   useEffect(() => {
     setQuestState(getQuestState());
@@ -118,11 +119,34 @@ export default function DashboardPage() {
 
   const featuredGames = playerProgress.slice(0, 4);
   const averageProgress = Math.round(featuredGames.reduce((sum, game) => sum + Number(game.progress || 0), 0) / Math.max(featuredGames.length, 1));
-  const completedStages = featuredGames.filter((game) => Number(game.progress || 0) >= 80).length;
-  const xp = featuredGames.reduce((sum, game) => sum + Number(game.progress || 0) * 120, 0);
+  const completedStages = questState?.activeQuests?.filter(q => q.claimed || q.current >= q.target).length || 0;
+  const totalQuests = questState?.activeQuests?.length || 3;
+  const xp = playerProgress.reduce((sum, game) => sum + (Number(game.score) || 0), 0);
   const level = Math.max(1, Math.round(averageProgress / 5));
   
-  const currentRank = getRankFromPoints(questState?.totalPoints || 0);
+  const currentPoints = questState?.totalPoints || 0;
+  const currentRank = getRankFromPoints(currentPoints);
+  
+  const sortedRanks = [...RANKS].sort((a, b) => a.minPoints - b.minPoints);
+  const nextRank = sortedRanks.find(r => r.minPoints > currentPoints);
+  
+  let expPercentage = 100;
+  let expText = "Max Rank";
+  
+  if (nextRank) {
+    const currentRankMin = currentRank.minPoints;
+    const nextRankMin = nextRank.minPoints;
+    expPercentage = ((currentPoints - currentRankMin) / (nextRankMin - currentRankMin)) * 100;
+    expText = `${currentPoints} / ${nextRankMin} QP`;
+  }
+
+  const hexToRgbStr = (hex) => {
+    const hexStr = hex || '#7dd3fc';
+    const r = parseInt(hexStr.slice(1, 3), 16) || 125;
+    const g = parseInt(hexStr.slice(3, 5), 16) || 211;
+    const b = parseInt(hexStr.slice(5, 7), 16) || 252;
+    return `${r}, ${g}, ${b}`;
+  };
 
   const shellStyle = {
     minHeight: "100vh",
@@ -176,11 +200,25 @@ export default function DashboardPage() {
           </div>
           <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-3, 45, 212, 191), 0.15), transparent)", borderColor: "rgba(var(--card-tint-3, 45, 212, 191), 0.25)" }}>
             <span className="label">Stage clear</span>
-            <strong>{completedStages}/{featuredGames.length}</strong>
+            <strong>{completedStages}/{totalQuests}</strong>
           </div>
-          <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-4, 236, 72, 153), 0.15), transparent)", borderColor: "rgba(var(--card-tint-4, 236, 72, 153), 0.25)" }}>
-            <span className="label">Rank</span>
-            <strong style={{ background: currentRank.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <div 
+            className="stat-card" 
+            onClick={() => setIsRankModalOpen(true)}
+            style={{ 
+              background: `linear-gradient(180deg, ${currentRank.color}25, transparent)`, 
+              borderColor: `${currentRank.color}40`, 
+              cursor: "pointer", 
+              transition: "transform 0.2s, box-shadow 0.2s" 
+            }}
+            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px)'}
+            onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <span className="label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              Rank 
+              <span style={{ fontSize: 9, color: currentRank.color, border: `1px solid ${currentRank.color}`, padding: '2px 6px', borderRadius: 10 }}>INFO</span>
+            </span>
+            <strong style={{ backgroundImage: currentRank.gradient, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>
               {currentRank.name}
             </strong>
           </div>
@@ -188,14 +226,30 @@ export default function DashboardPage() {
 
         <div className="dashboard-content" style={{ position: "relative", zIndex: 1 }}>
           <section className="panel-card" style={{ boxShadow: "0 0 26px rgba(99,102,241,0.08)" }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
               <div>
                 <div style={labelStyle}>Daily Quests</div>
-                <h2 style={{ marginTop: 0 }}>Nhiệm vụ ngày</h2>
+                <h2 style={{ marginTop: 0, marginBottom: 8 }}>Today's Quests</h2>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>Quest Points</span>
-                <strong style={{ display: 'block', fontSize: 24, color: '#f59e0b' }}>{questState?.totalPoints || 0}</strong>
+              <div style={{ minWidth: 260, flex: "1 1 260px", maxWidth: 400, textAlign: 'right' }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                  <span style={{ fontSize: 14, color: 'var(--muted)', fontWeight: 600 }}>Rank: {currentRank.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <strong style={{ fontSize: 24, backgroundImage: currentRank.gradient || '#f59e0b', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }}>
+                      {currentPoints}
+                    </strong>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>QP</span>
+                  </div>
+                </div>
+                
+                <div style={{ background: 'rgba(0,0,0,0.3)', height: 10, borderRadius: 5, overflow: 'hidden', boxShadow: "inset 0 1px 3px rgba(0,0,0,0.5)", marginBottom: 8 }}>
+                  <div style={{ width: `${Math.min(100, Math.max(0, expPercentage))}%`, background: currentRank.gradient || '#f59e0b', height: '100%', borderRadius: 5, transition: 'width 0.5s ease-out' }} />
+                </div>
+                
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>
+                  <span>{expText}</span>
+                  <span>{nextRank ? `Next: ${nextRank.name}` : "Max Rank"}</span>
+                </div>
               </div>
             </div>
 
@@ -207,17 +261,17 @@ export default function DashboardPage() {
                     <div className="mini-progress-line" style={{ background: 'rgba(255,255,255,0.1)' }}>
                       <span style={{ width: `${Math.min(100, (q.current / q.target) * 100)}%`, background: q.claimed ? '#10b981' : '#3b82f6' }} />
                     </div>
-                    <small style={{ color: 'var(--muted)', display: 'block', marginTop: 8 }}>Tiến độ: {q.current} / {q.target}</small>
+                    <small style={{ color: 'var(--muted)', display: 'block', marginTop: 8 }}>Progress: {q.current} / {q.target}</small>
                   </div>
                   <div>
                     {q.claimed ? (
-                      <span style={{ color: '#10b981', fontWeight: 700, padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: 8 }}>Đã nhận</span>
+                      <span style={{ color: '#10b981', fontWeight: 700, padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: 8 }}>Claimed</span>
                     ) : q.current >= q.target ? (
                       <button className="primary-button" style={{ background: '#f59e0b', color: '#000' }} onClick={() => claimQuestReward(q.id)}>
-                        Nhận {q.reward} QP
+                        Claim {q.reward} QP
                       </button>
                     ) : (
-                      <span style={{ color: '#f59e0b', fontWeight: 600 }}>Thưởng: {q.reward} QP</span>
+                      <span style={{ color: '#f59e0b', fontWeight: 600 }}>Reward: {q.reward} QP</span>
                     )}
                   </div>
                 </div>
@@ -274,6 +328,27 @@ export default function DashboardPage() {
             </div>
           </aside>
         </div>
+        
+        {isRankModalOpen && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} onClick={() => setIsRankModalOpen(false)} />
+            <div className="panel-card" style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 460, background: "var(--panel-strong)", border: `1px solid ${currentRank.color}`, boxShadow: `0 0 30px ${currentRank.color}40` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <h2 style={{ margin: 0 }}>Hệ thống Hạng (Rank)</h2>
+                <button onClick={() => setIsRankModalOpen(false)} style={{ background: "transparent", border: "none", color: "var(--muted)", fontSize: 28, cursor: "pointer", lineHeight: 1 }}>×</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "60vh", overflowY: "auto", paddingRight: 8 }}>
+                {[...RANKS].sort((a,b) => b.minPoints - a.minPoints).map(r => (
+                  <div key={r.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: r.name === currentRank.name ? `1px solid ${r.color}` : "1px solid var(--border)" }}>
+                    <strong style={{ backgroundImage: r.gradient, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', fontSize: 18, display: 'inline-block' }}>{r.name}</strong>
+                    <span style={{ color: "var(--muted)", fontSize: 14 }}>{r.minPoints} QP</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </AuthGuard>
   );
