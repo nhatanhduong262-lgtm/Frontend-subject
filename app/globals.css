@@ -22,24 +22,25 @@
 }
 
 html[data-theme="light"] {
-  --bg: #f8fafc;
-  --bg-strong: #e2e8f0;
-  --panel: rgba(255, 255, 255, 0.92);
-  --panel-soft: rgba(255, 255, 255, 0.75);
-  --panel-strong: #ffffff;
-  --text: #0f172a;
-  --muted: #475569;
-  --accent: #4f46e5;
-  --accent-strong: #4338ca;
-  --cyan: #0284c7;
-  --mint: #059669;
-  --pink: #db2777;
-  --gold: #d97706;
-  --danger: #e11d48;
-  --border: rgba(15, 23, 42, 0.15);
-  --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
-  --btn-ghost: rgba(15, 23, 42, 0.06);
-  --btn-ghost-hover: rgba(15, 23, 42, 0.12);
+  /* Warm ivory background — easier on eyes than pure white */
+  --bg: #f0ede8;
+  --bg-strong: #e3ded6;
+  --panel: rgba(255, 253, 249, 0.88);
+  --panel-soft: rgba(255, 253, 249, 0.72);
+  --panel-strong: #fffdf9;
+  --text: #1a1410;
+  --muted: #6b5e52;
+  --accent: #6d3be8;
+  --accent-strong: #5a2fd4;
+  --cyan: #0369a1;
+  --mint: #047857;
+  --pink: #be185d;
+  --gold: #b45309;
+  --danger: #b91c1c;
+  --border: rgba(90, 60, 30, 0.13);
+  --shadow: 0 8px 32px rgba(60, 40, 20, 0.10);
+  --btn-ghost: rgba(90, 60, 30, 0.07);
+  --btn-ghost-hover: rgba(90, 60, 30, 0.13);
 }
 
 @theme inline {
@@ -63,7 +64,15 @@ body {
     var(--bg) !important;
   color: var(--text) !important;
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  transition: background 0.3s ease, color 0.3s ease;
+  transition: background 0.35s ease, color 0.35s ease;
+}
+
+html[data-theme="light"] body {
+  background:
+    radial-gradient(circle at top left, rgba(139, 92, 246, 0.10), transparent 35%),
+    radial-gradient(circle at bottom right, rgba(180, 83, 9, 0.07), transparent 30%),
+    radial-gradient(circle at top right, rgba(3, 105, 161, 0.06), transparent 28%),
+    var(--bg) !important;
 }
 
 body::before {
@@ -76,6 +85,12 @@ body::before {
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: radial-gradient(circle at center, black 35%, transparent 100%);
+}
+
+html[data-theme="light"] body::before {
+  background-image:
+    linear-gradient(rgba(90, 60, 30, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90, 60, 30, 0.04) 1px, transparent 1px);
 }
 
 * {
@@ -364,6 +379,10 @@ button {
   background: rgba(255, 255, 255, 0.08);
 }
 
+html[data-theme="light"] .progress-line {
+  background: rgba(90, 60, 30, 0.10);
+}
+
 .progress-line span {
   display: block;
   height: 100%;
@@ -534,6 +553,11 @@ button {
   background: rgba(255, 255, 255, 0.08);
 }
 
+html[data-theme="light"] .mini-progress-line,
+html[data-theme="light"] .mini-feature-card .mini-progress-line {
+  background: rgba(90, 60, 30, 0.10);
+}
+
 .mini-progress-line span {
   display: block;
   height: 100%;
@@ -643,6 +667,11 @@ button {
   color: var(--text);
   padding: 14px 16px;
   outline: none;
+}
+
+html[data-theme="light"] .form-field input {
+  background: rgba(255, 253, 249, 0.9);
+  border-color: rgba(90, 60, 30, 0.18);
 }
 
 .form-field input:focus {

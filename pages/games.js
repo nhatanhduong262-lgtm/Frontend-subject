@@ -16,9 +16,8 @@ const demoGames = [
   { id: 7, title: "Aim Blaster", genre: "Action", stage: "Target rush", progress: 0, status: "Live", href: "/aimblaster", image: "/images/aim_blaster.png" },
   { id: 8, title: "Number Crush", genre: "Puzzle", stage: "Speed order", progress: 0, status: "Live", href: "/numbercrush", image: "/images/number_crush.png" },
   { id: 9, title: "Color Storm", genre: "Memory", stage: "Pattern recall", progress: 0, status: "Live", href: "/colorstorm", image: "/images/color_storm.png" },
-  { id: 10, title: "Echo Rift", genre: "Action RPG", stage: "Stage 3", progress: 62, status: "Live", href: "/dashboard" },
-  { id: 11, title: "Crystal Drift", genre: "Adventure", stage: "Stage 1", progress: 24, status: "New", href: "/dashboard" },
-  { id: 12, title: "Vanguard Zero", genre: "Shooter", stage: "Stage 9", progress: 91, status: "Live", href: "/dashboard" },
+  { id: 10, title: "Brick Blaster", genre: "Arcade", stage: "Break em all", progress: 0, status: "New", href: "/brickblaster", image: "/images/brick_blaster.png" },
+  { id: 11, title: "Word Blitz", genre: "Speed", stage: "Typing rush", progress: 0, status: "New", href: "/wordblitz", image: "/images/word_blitz.png" },
 ];
 
 const genres = ["All", "Arcade", "Puzzle", "Speed", "Chance", "Action", "Memory", "Action RPG", "Adventure", "Shooter"];

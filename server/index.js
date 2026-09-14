@@ -62,6 +62,7 @@ function publicUser(user) {
     name: user.name,
     phone: user.phone || '',
     role: user.role || 'user',
+    avatar_url: user.avatar_url || '',
   };
 }
 
@@ -280,12 +281,12 @@ app.put('/users/:id/progress', requireAuth(), requireUserAccess('id'), async (re
 app.put('/profile/:id', requireAuth(), requireUserAccess('id'), async (req, res) => {
   try {
     const supabaseClient = getSupabaseClient();
-    const { name, email, phone = '' } = req.body;
+    const { name, email, phone = '', avatar_url = '' } = req.body;
     if (!name || !email) return res.status(400).send('Name and email are required.');
 
     const { data, error } = await supabaseClient
       .from('users')
-      .update({ name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim() })
+      .update({ name: name.trim(), email: email.trim().toLowerCase(), phone: phone.trim(), avatar_url: avatar_url.trim() })
       .eq('id', req.params.id)
       .select('*')
       .maybeSingle();
@@ -428,13 +429,13 @@ app.get('/users/:id/public', async (req, res) => {
 
     const { data, error } = await supabaseClient
       .from('users')
-      .select('id, name')
+      .select('id, name, avatar_url')
       .eq('id', userId)
       .single();
 
     if (error || !data) return res.status(404).json({ message: 'User not found.' });
 
-    res.json({ id: data.id, name: data.name });
+    res.json({ id: data.id, name: data.name, avatar_url: data.avatar_url || '' });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Database error.' });
   }
@@ -454,7 +455,7 @@ app.post('/friends/request', requireAuth(), async (req, res) => {
     // Check if user exists
     const { data: target, error: lookupErr } = await supabaseClient
       .from('users')
-      .select('id, name')
+      .select('id, name, avatar_url')
       .eq('id', Number(friendId))
       .single();
     if (lookupErr || !target) return res.status(404).json({ message: 'User not found.' });
@@ -506,7 +507,7 @@ app.get('/friends', requireAuth(), async (req, res) => {
     if (otherIds.length > 0) {
       const { data: usersData } = await supabaseClient
         .from('users')
-        .select('id, name')
+        .select('id, name, avatar_url')
         .in('id', otherIds);
       (usersData || []).forEach(u => { usersMap[u.id] = u; });
     }
