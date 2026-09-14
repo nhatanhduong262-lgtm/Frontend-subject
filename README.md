@@ -1,7 +1,7 @@
 # PixelPulse — Full-Stack Arcade Dashboard Project
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
-**Live Demo:** [https://your-vercel-project-link.vercel.app](https://your-vercel-project-link.vercel.app)
+**Live Demo:** [https://pixelpulse-arcade.vercel.app](https://pixelpulse-arcade.vercel.app)
 
 ### Demo Accounts
 - **Admin**: `admin@pixelpulse.app` / `admin123`
