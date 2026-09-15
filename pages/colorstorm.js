@@ -197,8 +197,8 @@ export default function ColorStormPage() {
         <div style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-          maxWidth: 420,
+          gap: 24,
+          maxWidth: 600,
           margin: "0 auto",
         }}>
           {COLORS.map((color) => {
@@ -210,19 +210,19 @@ export default function ColorStormPage() {
                 onClick={() => handleColorClick(color.id)}
                 disabled={status !== "input"}
                 style={{
-                  height: 140,
-                  borderRadius: 20,
+                  height: 200,
+                  borderRadius: 24,
                   border: "2px solid transparent",
                   background: isActive
                     ? color.bg
                     : wrongFlash
                     ? "rgba(239,68,68,0.15)"
                     : `${color.bg}22`,
-                  boxShadow: isActive ? `0 0 40px ${color.shadow}` : "none",
-                  fontSize: 48,
+                  boxShadow: isActive ? `0 0 60px ${color.shadow}` : "none",
+                  fontSize: 72,
                   cursor: status === "input" ? "pointer" : "default",
                   transition: "all 0.15s ease",
-                  transform: isActive ? "scale(1.06)" : "scale(1)",
+                  transform: isActive ? "scale(1.08)" : "scale(1)",
                 }}
               >
                 {color.label}

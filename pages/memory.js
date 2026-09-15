@@ -52,47 +52,7 @@ export default function MemoryPage() {
     return undefined;
   }, [router]);
 
-  useEffect(() => {
-    if (flippedIndexes.length !== 2) return undefined;
 
-    const [firstIndex, secondIndex] = flippedIndexes;
-    const firstCard = cards[firstIndex];
-    const secondCard = cards[secondIndex];
-
-    if (!firstCard || !secondCard) return undefined;
-
-    setIsLocked(true);
-    setMoves((current) => current + 1);
-
-    if (firstCard.symbol === secondCard.symbol) {
-      playMatchSuccessSound();
-      const nextMatched = [...matchedSymbols, firstCard.symbol];
-      setMatchedSymbols(nextMatched);
-      setCards((current) =>
-        current.map((card, index) => {
-          if (index === firstIndex || index === secondIndex) {
-            return { ...card, matched: true };
-          }
-          return card;
-        }),
-      );
-
-      const timer = window.setTimeout(() => {
-        setFlippedIndexes([]);
-        setIsLocked(false);
-      }, 500);
-
-      return () => window.clearTimeout(timer);
-    }
-
-    playMismatchSound();
-    const timer = window.setTimeout(() => {
-      setFlippedIndexes([]);
-      setIsLocked(false);
-    }, 700);
-
-    return () => window.clearTimeout(timer);
-  }, [cards, flippedIndexes, matchedSymbols, playMatchSuccessSound, playMismatchSound]);
 
   useEffect(() => {
     if (matchedSymbols.length === SYMBOLS.length && cards.length > 0 && !isWon) {
@@ -110,7 +70,7 @@ export default function MemoryPage() {
       window.localStorage.setItem(`memory-best-${uid}`, String(nextBest));
       
       // Points calculation: fewer moves = more points
-      const points = Math.max(10, 100 - moves * 2);
+      const points = Math.max(10, 100 - (moves - 6) * 5);
       saveScoreToCloud("Neon Match", points);
       recordGameActivity("Neon Match", points);
       
@@ -132,6 +92,39 @@ export default function MemoryPage() {
     playCardFlipSound();
     const nextFlipped = [...flippedIndexes, index];
     setFlippedIndexes(nextFlipped);
+
+    if (nextFlipped.length === 2) {
+      setIsLocked(true);
+      setMoves((current) => current + 1);
+
+      const firstIndex = nextFlipped[0];
+      const secondIndex = nextFlipped[1];
+      const firstCard = cards[firstIndex];
+
+      if (firstCard.symbol === selectedCard.symbol) {
+        playMatchSuccessSound();
+        setMatchedSymbols((current) => [...current, firstCard.symbol]);
+        setCards((current) =>
+          current.map((card, i) => {
+            if (i === firstIndex || i === secondIndex) {
+              return { ...card, matched: true };
+            }
+            return card;
+          }),
+        );
+
+        window.setTimeout(() => {
+          setFlippedIndexes([]);
+          setIsLocked(false);
+        }, 500);
+      } else {
+        playMismatchSound();
+        window.setTimeout(() => {
+          setFlippedIndexes([]);
+          setIsLocked(false);
+        }, 700);
+      }
+    }
   };
 
   return (
@@ -203,9 +196,9 @@ export default function MemoryPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(68px, 1fr))",
-            gap: 14,
-            maxWidth: 560,
+            gridTemplateColumns: "repeat(4, minmax(120px, 1fr))",
+            gap: 20,
+            maxWidth: 800,
             margin: "0 auto",
           }}
         >
@@ -225,7 +218,7 @@ export default function MemoryPage() {
                     ? "linear-gradient(135deg, rgba(61, 217, 255, 0.2), rgba(139, 92, 246, 0.32))"
                     : "linear-gradient(135deg, rgba(15, 24, 42, 0.96), rgba(25, 38, 74, 0.9))",
                   color: isFaceUp ? "#f8fbff" : "rgba(255,255,255,0.6)",
-                  fontSize: "clamp(1.5rem, 4vw, 2.1rem)",
+                  fontSize: "clamp(3rem, 6vw, 4rem)",
                   fontWeight: 700,
                   boxShadow: isFaceUp ? "0 18px 32px rgba(61, 217, 255, 0.18)" : "inset 0 0 0 1px rgba(255,255,255,0.04)",
                   cursor: isLocked && !card.matched ? "default" : "pointer",

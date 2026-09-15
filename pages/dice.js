@@ -127,15 +127,15 @@ export default function DicePage() {
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(140px, 1fr))", gap: 18, maxWidth: 520, margin: "0 auto" }}>
-          <div style={{ borderRadius: 18, background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", padding: 18, textAlign: "center" }}>
-            <div style={{ color: "var(--muted)", marginBottom: 10, fontWeight: 700 }}>Player</div>
-            <div style={{ fontSize: "4rem", lineHeight: 1 }}>{playerRoll}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(200px, 1fr))", gap: 32, maxWidth: 800, margin: "0 auto" }}>
+          <div style={{ borderRadius: 24, background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", padding: 40, textAlign: "center" }}>
+            <div style={{ color: "var(--muted)", marginBottom: 20, fontWeight: 700, fontSize: 24 }}>Player</div>
+            <div style={{ fontSize: "8rem", lineHeight: 1 }}>{playerRoll}</div>
           </div>
 
-          <div style={{ borderRadius: 18, background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", padding: 18, textAlign: "center" }}>
-            <div style={{ color: "var(--muted)", marginBottom: 10, fontWeight: 700 }}>CPU</div>
-            <div style={{ fontSize: "4rem", lineHeight: 1 }}>{botRoll}</div>
+          <div style={{ borderRadius: 24, background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", padding: 40, textAlign: "center" }}>
+            <div style={{ color: "var(--muted)", marginBottom: 20, fontWeight: 700, fontSize: 24 }}>CPU</div>
+            <div style={{ fontSize: "8rem", lineHeight: 1 }}>{botRoll}</div>
           </div>
         </div>
       </section>

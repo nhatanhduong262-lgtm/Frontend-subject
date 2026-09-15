@@ -136,13 +136,17 @@ export function GameEffectsProvider({ children }) {
       }
       
       const userId = window.localStorage.getItem("userId");
-      if (!userId) return;
+      const token = window.localStorage.getItem("token");
+      if (!userId || !token) return;
       
-      const payload = { userId, game: gameName, score: Number(score) };
+      const payload = { game_name: gameName, score: Number(score) };
       
-      const response = await fetch('/api/submit-score', {
+      const response = await fetch('/api/game_logs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
       

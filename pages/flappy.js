@@ -8,22 +8,25 @@ import Leaderboard from "../components/Leaderboard";
 import { useGameEffects } from "../context/GameEffectsContext";
 import { usePlaytime } from "../hooks/usePlaytime";
 
-const GAME_WIDTH = 420;
-const GAME_HEIGHT = 560;
+const GAME_WIDTH = 800;
+const GAME_HEIGHT = 600;
 const FLOOR_HEIGHT = 76;
-const GRAVITY = 0.42;
-const FLAP_STRENGTH = -7.2;
-const PIPE_WIDTH = 68;
-const PIPE_GAP = 170;
-const PIPE_SPEED = 2.2;
+const GRAVITY = 0.15;
+const FLAP_STRENGTH = -3.8;
+const PIPE_WIDTH = 72;
+const PIPE_GAP = 220;
+const PIPE_SPEED = 1.25;
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
+let pipeIdCounter = 0;
 function createPipe() {
   const gapTop = randomBetween(100, GAME_HEIGHT - FLOOR_HEIGHT - PIPE_GAP - 110);
+  pipeIdCounter += 1;
   return {
+    id: pipeIdCounter,
     x: GAME_WIDTH + 30,
     width: PIPE_WIDTH,
     gapTop,
@@ -244,8 +247,8 @@ export default function FlappyPage() {
           }}
           style={{
             position: "relative",
-            width: GAME_WIDTH,
-            maxWidth: "100%",
+            width: "100%",
+            maxWidth: GAME_WIDTH,
             height: GAME_HEIGHT,
             overflow: "hidden",
             borderRadius: 24,
@@ -265,8 +268,8 @@ export default function FlappyPage() {
             }}
           />
 
-          {pipes.map((pipe, index) => (
-            <div key={`${pipe.x}-${index}`}>
+          {pipes.map((pipe) => (
+            <div key={pipe.id}>
               <div
                 style={{
                   position: "absolute",

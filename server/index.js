@@ -377,18 +377,27 @@ app.get('/leaderboard/:game_name', async (req, res) => {
       .select('score, played_at, users(name)')
       .eq('game_name', gameName)
       .order('score', { ascending: false })
-      .limit(5);
+      .limit(50);
 
     if (error) return res.status(500).json({ message: 'Unable to load leaderboard.' });
     
-    // Map response to a flatter structure
-    const leaderboard = (data || []).map(entry => ({
-      score: entry.score,
-      playedAt: entry.played_at,
-      playerName: entry.users?.name || 'Unknown'
-    }));
+    const uniqueLeaderboard = [];
+    const seenNames = new Set();
+    
+    for (const entry of (data || [])) {
+      const name = entry.users?.name || 'Unknown';
+      if (!seenNames.has(name)) {
+        seenNames.add(name);
+        uniqueLeaderboard.push({
+          score: entry.score,
+          playedAt: entry.played_at,
+          playerName: name
+        });
+        if (uniqueLeaderboard.length === 5) break;
+      }
+    }
 
-    res.json({ leaderboard });
+    res.json({ leaderboard: uniqueLeaderboard });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Database error.' });
   }
@@ -404,11 +413,34 @@ app.post('/game_logs', requireAuth(), async (req, res) => {
       return res.status(400).json({ message: 'game_name and score are required.' });
     }
 
-    const { error } = await supabaseClient
+    const { data: existingLogs, error: fetchError } = await supabaseClient
       .from('game_logs')
-      .insert({ user_id: userId, game_name, score });
+      .select('id, score')
+      .eq('user_id', userId)
+      .eq('game_name', game_name);
 
-    if (error) return res.status(500).json({ message: 'Unable to save game log.' });
+    if (fetchError) return res.status(500).json({ message: 'Unable to check game log.' });
+
+    if (existingLogs && existingLogs.length > 0) {
+      const highestScore = Math.max(...existingLogs.map(l => l.score));
+      const sorted = existingLogs.sort((a,b) => b.score - a.score);
+      const first = sorted[0];
+      const rest = sorted.slice(1);
+      
+      if (score > highestScore) {
+        await supabaseClient.from('game_logs').update({ score, played_at: new Date().toISOString() }).eq('id', first.id);
+      }
+      
+      if (rest.length > 0) {
+        const idsToDelete = rest.map(l => l.id);
+        await supabaseClient.from('game_logs').delete().in('id', idsToDelete);
+      }
+    } else {
+      const { error } = await supabaseClient
+        .from('game_logs')
+        .insert({ user_id: userId, game_name, score });
+      if (error) return res.status(500).json({ message: 'Unable to save game log.' });
+    }
 
     res.status(201).json({ message: 'Game score saved successfully.' });
   } catch (error) {

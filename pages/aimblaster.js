@@ -168,8 +168,8 @@ export default function AimBlasterPage() {
           style={{
             position: "relative",
             width: "100%",
-            height: 360,
-            borderRadius: 16,
+            height: 600,
+            borderRadius: 24,
             background: "linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,41,59,0.95))",
             border: "1px solid rgba(255,255,255,0.08)",
             overflow: "hidden",
@@ -178,16 +178,16 @@ export default function AimBlasterPage() {
           }}
         >
           {status === "idle" && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "rgba(255,255,255,0.4)" }}>
-              <span style={{ fontSize: 56 }}>🎯</span>
-              <span style={{ fontSize: 18, fontWeight: 600 }}>Press Start to play</span>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, color: "rgba(255,255,255,0.4)" }}>
+              <span style={{ fontSize: 80 }}>🎯</span>
+              <span style={{ fontSize: 24, fontWeight: 600 }}>Press Start to play</span>
             </div>
           )}
           {status === "over" && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <span style={{ fontSize: 48 }}>🏁</span>
-              <span style={{ fontSize: 32, fontWeight: 800, color: "#34d399" }}>{score} hits</span>
-              <span style={{ color: "var(--muted)" }}>Accuracy: {accuracy}%</span>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+              <span style={{ fontSize: 72 }}>🏁</span>
+              <span style={{ fontSize: 48, fontWeight: 800, color: "#34d399" }}>{score} hits</span>
+              <span style={{ color: "var(--muted)", fontSize: 20 }}>Accuracy: {accuracy}%</span>
             </div>
           )}
           {status === "playing" && target && (

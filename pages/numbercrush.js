@@ -159,8 +159,8 @@ export default function NumberCrushPage() {
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 12,
-          maxWidth: 480,
+          gap: 20,
+          maxWidth: 800,
           margin: "0 auto",
         }}>
           {numbers.map((num) => {
@@ -173,8 +173,8 @@ export default function NumberCrushPage() {
                 onClick={() => handleClick(num)}
                 disabled={isCleared || status !== "playing"}
                 style={{
-                  height: 88,
-                  borderRadius: 14,
+                  height: 140,
+                  borderRadius: 24,
                   border: isWrong ? "2px solid #ef4444" : "1px solid rgba(255,255,255,0.1)",
                   background: isCleared
                     ? "rgba(52, 211, 153, 0.12)"
@@ -182,7 +182,7 @@ export default function NumberCrushPage() {
                     ? "rgba(239,68,68,0.2)"
                     : "rgba(255,255,255,0.04)",
                   color: isCleared ? "#34d399" : "#fff",
-                  fontSize: 26,
+                  fontSize: 48,
                   fontWeight: 800,
                   cursor: isCleared ? "default" : "pointer",
                   opacity: isCleared ? 0.4 : 1,

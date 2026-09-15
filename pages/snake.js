@@ -251,10 +251,10 @@ export default function SnakePage() {
         <div
           style={{
             position: "relative",
-            width: "min(100%, 460px)",
+            width: "min(100%, 800px)",
             aspectRatio: "1",
             margin: "0 auto",
-            borderRadius: 20,
+            borderRadius: 24,
             overflow: "hidden",
             background: "linear-gradient(180deg, rgba(10,15,30,0.98), rgba(17,25,45,0.96))",
             border: "1px solid rgba(255,255,255,0.12)",

@@ -230,10 +230,9 @@ export default function WordBlitzPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, alignItems: "start" }}>
-
+      <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
         {/* Main Game Area */}
-        <section className="panel-card" style={{ padding: "28px 30px" }}>
+        <section className="panel-card" style={{ padding: "40px 50px", width: "100%", maxWidth: "800px" }}>
 
           {/* IDLE */}
           {status === "idle" && (
@@ -319,7 +318,7 @@ export default function WordBlitzPage() {
                       key={`${word}-${i}`}
                       className="word-chip"
                       style={{
-                        padding: "14px 24px", borderRadius: 16, fontSize: 22, fontWeight: 900,
+                        padding: "20px 32px", borderRadius: 20, fontSize: 32, fontWeight: 900,
                         fontFamily: "monospace", letterSpacing: "0.1em",
                         background: isExact ? "rgba(16,185,129,0.2)" : isMatch ? "rgba(61,217,255,0.1)" : flash === "correct" ? "rgba(16,185,129,0.05)" : "rgba(255,255,255,0.05)",
                         border: isExact ? "2px solid #10b981" : isMatch ? "2px solid rgba(61,217,255,0.5)" : "2px solid rgba(255,255,255,0.1)",
@@ -364,10 +363,10 @@ export default function WordBlitzPage() {
                   spellCheck={false}
                   style={{
                     width: "100%", boxSizing: "border-box",
-                    padding: "18px 24px", borderRadius: 16,
+                    padding: "24px 32px", borderRadius: 20,
                     background: flash === "correct" ? "rgba(16,185,129,0.1)" : flash === "wrong" ? "rgba(239,68,68,0.1)" : "rgba(255,255,255,0.05)",
                     border: `2px solid ${flash === "correct" ? "#10b981" : flash === "wrong" ? "#ef4444" : "rgba(61,217,255,0.3)"}`,
-                    color: "var(--text)", fontSize: 20, fontWeight: 700, fontFamily: "monospace",
+                    color: "var(--text)", fontSize: 28, fontWeight: 700, fontFamily: "monospace",
                     outline: "none", textAlign: "center", letterSpacing: "0.08em",
                     transition: "background 0.2s, border-color 0.2s",
                     boxShadow: flash === "correct" ? "0 0 20px rgba(16,185,129,0.4)" : flash === "wrong" ? "0 0 20px rgba(239,68,68,0.4)" : "0 0 0 3px rgba(61,217,255,0.08)",
@@ -434,62 +433,6 @@ export default function WordBlitzPage() {
             </div>
           )}
         </section>
-
-        {/* Sidebar */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* How to play */}
-          <div className="panel-card" style={{ padding: 20 }}>
-            <h3 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 800, background: "linear-gradient(90deg,#3dd9ff,#10b981)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              How to Play
-            </h3>
-            {[
-              { icon: "👀", text: "3 words appear on screen" },
-              { icon: "⌨️", text: "Type any word you see" },
-              { icon: "✅", text: "Words auto-match as you type" },
-              { icon: "🔥", text: "Build combos for bonus points" },
-              { icon: "⏱️", text: "60 seconds — type as many as you can!" },
-              { icon: "⬆️", text: "Higher difficulty = more points" },
-            ].map((tip, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, fontSize: 13, color: "var(--muted)" }}>
-                <span style={{ fontSize: 17 }}>{tip.icon}</span>
-                {tip.text}
-              </div>
-            ))}
-          </div>
-
-          {/* Scoring */}
-          <div className="panel-card" style={{ padding: 20 }}>
-            <h3 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 800 }}>Scoring</h3>
-            {Object.entries(diffConfig).map(([key, cfg]) => (
-              <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "8px 12px", borderRadius: 10, background: difficulty === key ? `${cfg.color}10` : "rgba(255,255,255,0.03)", border: `1px solid ${difficulty === key ? cfg.color + "40" : "rgba(255,255,255,0.06)"}` }}>
-                <span style={{ fontWeight: 700, color: cfg.color, fontSize: 14 }}>{cfg.icon} {cfg.label}</span>
-                <span style={{ color: "var(--muted)", fontSize: 13 }}>+{diffPoints[key]} pts/word</span>
-              </div>
-            ))}
-            <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 10, background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", fontSize: 13, color: "var(--muted)" }}>
-              🔥 Combo ×N → pts × (1 + N×0.3)
-            </div>
-          </div>
-
-          {/* Live stats while playing */}
-          {status === "playing" && (
-            <div className="panel-card" style={{ padding: 16, background: "linear-gradient(135deg,rgba(61,217,255,0.05),rgba(16,185,129,0.05))", borderColor: "rgba(61,217,255,0.2)" }}>
-              <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Live Stats</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[
-                  { label: "Words Correct", val: totalTyped, color: "#10b981" },
-                  { label: "Mistakes", val: wrongCount, color: "#ef4444" },
-                  { label: "Current Combo", val: `${combo}×`, color: "#a78bfa" },
-                ].map(s => (
-                  <div key={s.label} style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 13, color: "var(--muted)" }}>{s.label}</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: s.color }}>{s.val}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       <div style={{ marginTop: 24 }}>

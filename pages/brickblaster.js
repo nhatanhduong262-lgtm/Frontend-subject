@@ -8,20 +8,20 @@ import { recordGameActivity } from "../lib/quests";
 import { useGameEffects } from "../context/GameEffectsContext";
 import { usePlaytime } from "../hooks/usePlaytime";
 
-const W = 480;
-const H = 420;
-const PADDLE_W = 80;
-const PADDLE_H = 12;
-const PADDLE_Y = H - 32;
-const BALL_R = 7;
+const W = 800;
+const H = 600;
+const PADDLE_W = 120;
+const PADDLE_H = 16;
+const PADDLE_Y = H - 40;
+const BALL_R = 10;
 const BRICK_ROWS = 5;
-const BRICK_COLS = 8;
-const BRICK_W = 52;
-const BRICK_H = 18;
-const BRICK_PAD = 4;
+const BRICK_COLS = 10;
+const BRICK_W = 70;
+const BRICK_H = 24;
+const BRICK_PAD = 6;
 const BRICK_OFFSET_X = (W - (BRICK_COLS * (BRICK_W + BRICK_PAD) - BRICK_PAD)) / 2;
-const BRICK_OFFSET_Y = 44;
-const BALL_SPEED_INIT = 4.5;
+const BRICK_OFFSET_Y = 60;
+const BALL_SPEED_INIT = 7;
 
 const ROW_COLORS = [
   { fill: "#ef4444", glow: "rgba(239,68,68,0.8)", hp: 3 },
@@ -536,8 +536,8 @@ export default function BrickBlasterPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 22, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div style={{ flex: "0 0 auto" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+        <div style={{ width: "fit-content" }}>
           <div style={{
             borderRadius: 20, overflow: "hidden",
             border: "2px solid rgba(61,217,255,0.35)",
@@ -555,40 +555,6 @@ export default function BrickBlasterPage() {
           <div style={{ marginTop: 12, textAlign: "center", color: "var(--muted)", fontSize: 13, fontWeight: 600 }}>
             🖱️ Mouse / <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 7px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.2)" }}>◀ ▶</kbd> keys to move paddle •
             <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 7px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.2)", marginLeft: 6 }}>SPACE</kbd> to launch
-          </div>
-        </div>
-
-        <div style={{ flex: 1, minWidth: 220, display: "flex", flexDirection: "column", gap: 14 }}>
-          <div className="panel-card" style={{ padding: 22 }}>
-            <h2 style={{ margin: "0 0 14px", fontSize: 17, background: "linear-gradient(90deg,#3dd9ff,#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>How to Play</h2>
-            {[
-              { icon: "🖱️", text: "Move mouse or arrow keys to control paddle" },
-              { icon: "⚽", text: "Bounce the ball to break all bricks" },
-              { icon: "🟥", text: "Red bricks need 3 hits, yellow 2, others 1" },
-              { icon: "❤️", text: "You have 3 lives — don't drop the ball!" },
-              { icon: "🔥", text: "Hit multiple bricks without touching paddle for combo bonus" },
-              { icon: "⬆️", text: "Clear all bricks to advance to the next level" },
-            ].map((tip, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, padding: "8px 10px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{tip.icon}</span>
-                <span style={{ color: "var(--muted)", fontSize: 13, lineHeight: 1.4 }}>{tip.text}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="panel-card" style={{ padding: 18 }}>
-            <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Brick Values</div>
-            {ROW_COLORS.slice().reverse().map((row, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                <div style={{ width: 36, height: 14, borderRadius: 4, background: row.fill, boxShadow: `0 0 8px ${row.glow}`, flexShrink: 0 }} />
-                <span style={{ fontSize: 13, color: "var(--muted)" }}>
-                  {row.hp > 1 ? `${row.hp} hits • ${row.hp * 10} pts` : "1 hit • 10 pts"}
-                </span>
-              </div>
-            ))}
-            <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 10, background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", fontSize: 13, color: "var(--muted)" }}>
-              🔥 Combo (no paddle hit) → ×1.5, ×2…
-            </div>
           </div>
         </div>
       </div>

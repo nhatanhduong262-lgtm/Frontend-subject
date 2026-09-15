@@ -9,9 +9,9 @@ import { mergeProgressRecord } from "../lib/playerProgress";
 import { recordGameActivity } from "../lib/quests";
 import { usePlaytime } from "../hooks/usePlaytime";
 
-const PADDLE_HEIGHT = 100;
+const PADDLE_HEIGHT = 120;
 const BOARD_WIDTH = 800;
-const BOARD_HEIGHT = 480;
+const BOARD_HEIGHT = 600;
 
 export default function PongPage() {
   usePlaytime({ title: "Pong Arena", genre: "Arcade", href: "/pong" });
@@ -19,6 +19,7 @@ export default function PongPage() {
   const { isMuted, toggleMute, playPaddleHitSound, playWallHitSound, playScoreSound, playGameOverSound, saveScoreToCloud } = useGameEffects();
   const [state, setState] = useState(createInitialPongState());
   const [controls, setControls] = useState({ leftUp: false, leftDown: false, rightUp: false, rightDown: false });
+  const [gameMode, setGameMode] = useState("menu"); // "menu", "1p", "2p"
   const gameLoopRef = useRef(null);
 
   useEffect(() => {
@@ -53,11 +54,46 @@ export default function PongPage() {
   }, [router]);
 
   useEffect(() => {
+    if (gameMode === "menu") return;
+
     gameLoopRef.current = window.setInterval(() => {
       setState((current) => {
         if (current.winner) return current;
         
-        const nextState = stepPongState(current, controls);
+        let activeControls = { ...controls };
+        if (gameMode === "1p") {
+          const paddleCenter = current.rightY + PADDLE_HEIGHT / 2;
+          if (current.ballX > 200 && current.vx > 0) {
+            // AI reacts when ball is moving towards it and crosses the 200px mark
+            if (current.ballY < paddleCenter - 15) {
+              activeControls.rightUp = true;
+              activeControls.rightDown = false;
+            } else if (current.ballY > paddleCenter + 15) {
+              activeControls.rightDown = true;
+              activeControls.rightUp = false;
+            } else {
+              activeControls.rightUp = false;
+              activeControls.rightDown = false;
+            }
+          } else if (current.vx < 0) {
+            // Slowly return to center
+            if (paddleCenter < 230) {
+               activeControls.rightDown = true;
+               activeControls.rightUp = false;
+            } else if (paddleCenter > 250) {
+               activeControls.rightUp = true;
+               activeControls.rightDown = false;
+            } else {
+               activeControls.rightUp = false;
+               activeControls.rightDown = false;
+            }
+          } else {
+            activeControls.rightUp = false;
+            activeControls.rightDown = false;
+          }
+        }
+        
+        const nextState = stepPongState(current, activeControls);
         
         if (nextState.leftScore > current.leftScore || nextState.rightScore > current.rightScore) {
           playScoreSound();
@@ -69,15 +105,19 @@ export default function PongPage() {
         
         if (nextState.winner && !current.winner) {
           playGameOverSound();
-          const finalScore = Math.max(nextState.leftScore, nextState.rightScore);
-          saveScoreToCloud("Pong Arena", finalScore);
-          recordGameActivity("Pong Arena", finalScore);
-          mergeProgressRecord(
-            { title: "Pong Arena", genre: "Arcade", href: "/pong" },
-            finalScore,
-            "direct",
-            20,
-          );
+          if (gameMode === "1p") {
+            const points = nextState.winner === "left" 
+              ? 700 + (7 - nextState.rightScore) * 100 
+              : nextState.leftScore * 50;
+            saveScoreToCloud("Pong Arena", points);
+            recordGameActivity("Pong Arena", points);
+            mergeProgressRecord(
+              { title: "Pong Arena", genre: "Arcade", href: "/pong" },
+              points,
+              "direct",
+              1400,
+            );
+          }
         }
         
         return nextState;
@@ -89,9 +129,12 @@ export default function PongPage() {
         window.clearInterval(gameLoopRef.current);
       }
     };
-  }, [controls, playScoreSound, playPaddleHitSound, playWallHitSound, playGameOverSound, saveScoreToCloud]);
+  }, [controls, gameMode, playScoreSound, playPaddleHitSound, playWallHitSound, playGameOverSound, saveScoreToCloud]);
 
-  const resetGame = () => setState(createInitialPongState());
+  const resetGame = (mode) => {
+    if (mode) setGameMode(mode);
+    setState(createInitialPongState());
+  };
 
   return (
     <main className="dashboard-shell" style={{ minHeight: "100vh" }}>
@@ -132,12 +175,12 @@ export default function PongPage() {
           <strong>{state.leftScore}</strong>
         </div>
         <div className="stat-card">
-          <span className="label">Player 2</span>
+          <span className="label">{gameMode === "1p" ? "AI (Bot)" : "Player 2"}</span>
           <strong>{state.rightScore}</strong>
         </div>
         <div className="stat-card">
           <span className="label">Status</span>
-          <strong>{state.winner ? `${state.winner === "left" ? "Player 1" : "Player 2"} wins` : "Live"}</strong>
+          <strong>{state.winner ? `${state.winner === "left" ? "Player 1" : gameMode === "1p" ? "AI" : "Player 2"} wins` : gameMode === "menu" ? "Menu" : "Live"}</strong>
         </div>
         <div className="stat-card">
           <span className="label">Controls</span>
@@ -152,14 +195,20 @@ export default function PongPage() {
             <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>First to 7 points wins the match.</p>
           </div>
 
-          <button type="button" className="primary-button" onClick={resetGame}>Reset round</button>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button type="button" className="primary-button" onClick={() => resetGame("1p")}>1P vs AI</button>
+            <button type="button" className="ghost-button" style={{ border: '1px solid var(--border-color)' }} onClick={() => resetGame("2p")}>2 Players</button>
+            {gameMode !== "menu" && (
+              <button type="button" className="ghost-button" onClick={() => resetGame()}>Reset round</button>
+            )}
+          </div>
         </div>
 
         <div
           style={{
             position: "relative",
             width: "min(100%, 800px)",
-            height: 480,
+            height: BOARD_HEIGHT,
             margin: "0 auto",
             borderRadius: 18,
             background: "linear-gradient(180deg, rgba(12,18,34,0.95), rgba(16,26,42,0.92))",
@@ -167,46 +216,58 @@ export default function PongPage() {
             overflow: "hidden",
           }}
         >
-          <div style={{ position: "absolute", left: "50%", top: 0, width: 2, height: "100%", background: "rgba(255,255,255,0.18)" }} />
+          {gameMode === "menu" ? (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)" }}>
+              <h2 style={{ fontSize: "2rem", marginBottom: 24, color: "#fff" }}>Select Game Mode</h2>
+              <div style={{ display: "flex", gap: 16 }}>
+                <button type="button" className="primary-button" style={{ fontSize: "1.2rem", padding: "12px 24px" }} onClick={() => resetGame("1p")}>Play vs AI</button>
+                <button type="button" className="ghost-button" style={{ fontSize: "1.2rem", padding: "12px 24px", border: '1px solid var(--border-color)' }} onClick={() => resetGame("2p")}>2 Players (Local)</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ position: "absolute", left: "50%", top: 0, width: 2, height: "100%", background: "rgba(255,255,255,0.18)" }} />
 
-          <div
-            style={{
-              position: "absolute",
-              left: 20,
-              top: state.leftY,
-              width: 16,
-              height: PADDLE_HEIGHT,
-              borderRadius: 12,
-              background: "linear-gradient(180deg, #7ef7d3, #3dd9ff)",
-              boxShadow: "0 0 18px rgba(61, 217, 255, 0.6)",
-            }}
-          />
+              <div
+                style={{
+                  position: "absolute",
+                  left: 20,
+                  top: state.leftY,
+                  width: 16,
+                  height: PADDLE_HEIGHT,
+                  borderRadius: 12,
+                  background: "linear-gradient(180deg, #7ef7d3, #3dd9ff)",
+                  boxShadow: "0 0 18px rgba(61, 217, 255, 0.6)",
+                }}
+              />
 
-          <div
-            style={{
-              position: "absolute",
-              right: 20,
-              top: state.rightY,
-              width: 16,
-              height: PADDLE_HEIGHT,
-              borderRadius: 12,
-              background: "linear-gradient(180deg, #ff8ecf, #ff7a59)",
-              boxShadow: "0 0 18px rgba(255, 122, 89, 0.6)",
-            }}
-          />
+              <div
+                style={{
+                  position: "absolute",
+                  right: 20,
+                  top: state.rightY,
+                  width: 16,
+                  height: PADDLE_HEIGHT,
+                  borderRadius: 12,
+                  background: gameMode === "1p" ? "linear-gradient(180deg, #ff4d4d, #c62828)" : "linear-gradient(180deg, #ff8ecf, #ff7a59)",
+                  boxShadow: gameMode === "1p" ? "0 0 18px rgba(255, 77, 77, 0.6)" : "0 0 18px rgba(255, 122, 89, 0.6)",
+                }}
+              />
 
-          <div
-            style={{
-              position: "absolute",
-              left: state.ballX,
-              top: state.ballY,
-              width: 18,
-              height: 18,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #f9f871, #ff9f43)",
-              boxShadow: "0 0 18px rgba(249, 248, 113, 0.8)",
-            }}
-          />
+              <div
+                style={{
+                  position: "absolute",
+                  left: state.ballX,
+                  top: state.ballY,
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #f9f871, #ff9f43)",
+                  boxShadow: "0 0 18px rgba(249, 248, 113, 0.8)",
+                }}
+              />
+            </>
+          )}
         </div>
       </section>
       
