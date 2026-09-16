@@ -32,10 +32,10 @@ export default function LoginPage() {
       const actualRole = result.user?.role || "user";
 
       if (selectedRole === "admin" && actualRole !== "admin") {
-        throw new Error("Tài khoản này không có quyền Admin. Vui lòng chuyển sang tab Player.");
+        throw new Error("This account does not have Admin privileges. Please switch to the Player tab.");
       }
       if (selectedRole === "user" && actualRole === "admin") {
-        throw new Error("Đây là tài khoản Admin. Vui lòng chuyển sang tab Admin để đăng nhập.");
+        throw new Error("This is an Admin account. Please switch to the Admin tab to log in.");
       }
 
       const userProfile = { ...result.user, role: actualRole };
