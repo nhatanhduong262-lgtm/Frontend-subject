@@ -146,13 +146,13 @@ export default function FlappyPage() {
         }
       }
 
-      const hitFloor = bird.y + 18 >= GAME_HEIGHT - FLOOR_HEIGHT;
-      const hitCeiling = bird.y - 18 <= 0;
+      const hitFloor = bird.y + 32 >= GAME_HEIGHT - FLOOR_HEIGHT;
+      const hitCeiling = bird.y <= 0;
       const hitPipe = nextPipes.some((pipe) => {
-        const birdLeft = bird.x - 16;
-        const birdRight = bird.x + 16;
-        const birdTop = bird.y - 16;
-        const birdBottom = bird.y + 16;
+        const birdLeft = bird.x;
+        const birdRight = bird.x + 32;
+        const birdTop = bird.y;
+        const birdBottom = bird.y + 32;
         const pipeLeft = pipe.x;
         const pipeRight = pipe.x + pipe.width;
         const overlapsX = birdRight > pipeLeft && birdLeft < pipeRight;

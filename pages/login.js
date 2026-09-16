@@ -29,8 +29,16 @@ export default function LoginPage() {
       }
 
       const result = await response.json();
-      const resolvedRole = result.user?.role || selectedRole;
-      const userProfile = { ...result.user, role: resolvedRole };
+      const actualRole = result.user?.role || "user";
+
+      if (selectedRole === "admin" && actualRole !== "admin") {
+        throw new Error("Tài khoản này không có quyền Admin. Vui lòng chuyển sang tab Player.");
+      }
+      if (selectedRole === "user" && actualRole === "admin") {
+        throw new Error("Đây là tài khoản Admin. Vui lòng chuyển sang tab Admin để đăng nhập.");
+      }
+
+      const userProfile = { ...result.user, role: actualRole };
 
       window.localStorage.setItem("token", result.token);
       window.localStorage.setItem("userId", String(result.user.id));
@@ -40,7 +48,7 @@ export default function LoginPage() {
       window.localStorage.removeItem("pixelpulse-player-progress");
       window.localStorage.removeItem("pixelpulse-quests");
 
-      router.push(resolvedRole === "admin" ? "/admin" : "/dashboard");
+      router.push(actualRole === "admin" ? "/admin" : "/dashboard");
     } catch (requestError) {
       setError(requestError.message || "Unable to sign in.");
     } finally {

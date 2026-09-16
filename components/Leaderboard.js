@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useGameEffects } from '../context/GameEffectsContext';
 
 export default function Leaderboard({ gameName }) {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { lastScoreSavedAt } = useGameEffects();
 
   const fetchLeaderboard = async () => {
     try {
@@ -31,7 +33,7 @@ export default function Leaderboard({ gameName }) {
       const interval = setInterval(fetchLeaderboard, 30000);
       return () => clearInterval(interval);
     }
-  }, [gameName]);
+  }, [gameName, lastScoreSavedAt]);
 
   return (
     <div className="panel-card" style={{ marginTop: 24 }}>

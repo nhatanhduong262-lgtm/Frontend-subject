@@ -1,11 +1,12 @@
 import Link from "next/link";
 import ThemeToggle from "../components/ThemeToggle";
+import { createClient } from "@supabase/supabase-js";
 
-const highlights = [
-  { label: "Live quests", value: "24/7" },
-  { label: "Active players", value: "12.4K" },
-  { label: "Avg. progress", value: "82%" },
-];
+export const dynamic = 'force-dynamic';
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const features = [
   "Dynamic game dashboards",
@@ -20,7 +21,37 @@ const portalHighlights = [
   { title: "Admin control", subtitle: "Launch and manage content", accent: "#7ef7d3" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const { count: liveGamesCount } = await supabase
+    .from('games')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'Live');
+  
+  const { data: games } = await supabase.from('games').select('players, progress');
+  
+  let totalPlayers = 0;
+  let totalProgress = 0;
+  let gamesWithProgress = 0;
+  
+  if (games) {
+    games.forEach(g => {
+      totalPlayers += (g.players || 0);
+      if (typeof g.progress === 'number') {
+        totalProgress += g.progress;
+        gamesWithProgress++;
+      }
+    });
+  }
+  
+  const avgProgress = gamesWithProgress > 0 ? Math.round(totalProgress / gamesWithProgress) : 0;
+  const formattedPlayers = totalPlayers >= 1000 ? (totalPlayers / 1000).toFixed(1).replace(/\.0$/, '') + 'K' : totalPlayers.toString();
+
+  const highlights = [
+    { label: "Live quests", value: (liveGamesCount || 0).toString() },
+    { label: "Active players", value: formattedPlayers },
+    { label: "Avg. progress", value: `${avgProgress}%` },
+  ];
+
   return (
     <main className="landing-page">
       <div className="landing-overlay" />
@@ -75,16 +106,6 @@ export default function Home() {
               <span>Stage 7</span>
               <span>78% complete</span>
             </div>
-          </div>
-
-          <div className="floating-card card-1">
-            <span className="label">Rank</span>
-            <strong>Diamond</strong>
-          </div>
-
-          <div className="floating-card card-2">
-            <span className="label">XP</span>
-            <strong>24,890</strong>
           </div>
         </div>
       </section>

@@ -8,6 +8,7 @@ import { getQuestState } from "../lib/quests";
 export default function ProgressPage() {
   const router = useRouter();
   const [playerProgress, setPlayerProgress] = useState(DEFAULT_PLAYER_PROGRESS);
+  const [loadingProgress, setLoadingProgress] = useState(true);
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [questState, setQuestState] = useState(null);
@@ -28,7 +29,10 @@ export default function ProgressPage() {
 
   // Load player progress
   useEffect(() => {
-    setPlayerProgress(getStoredPlayerProgress()); // Set from local storage on client mount
+    const initialProgress = getStoredPlayerProgress();
+    setPlayerProgress(initialProgress);
+    const hasAnyProgress = initialProgress.some(g => g.playtime > 0 || g.score > 0);
+    setLoadingProgress(!hasAnyProgress); // Only show loading if we don't have local data yet
 
     let active = true;
     let unsubscribe = () => {};
@@ -46,7 +50,10 @@ export default function ProgressPage() {
 
     const hydrateProgress = async () => {
       const nextProgress = await loadPlayerProgressFromDatabase();
-      if (active) setPlayerProgress(nextProgress);
+      if (active) {
+        setPlayerProgress(nextProgress);
+        setLoadingProgress(false);
+      }
     };
 
     hydrateProgress();
@@ -109,7 +116,7 @@ export default function ProgressPage() {
   const completedQuests = questState?.activeQuests?.filter(q => q.claimed || q.current >= q.target).length || 0;
   const totalQuests = questState?.activeQuests?.length || 3;
   const xp = playerProgress.reduce((sum, game) => sum + (Number(game.score) || 0), 0);
-  const level = Math.max(1, Math.round(averageProgress / 5));
+  const level = Math.floor(xp / 100) + 1;
 
   const formatPlaytime = (seconds) => {
     if (!seconds || seconds <= 0) return '0s';
@@ -165,29 +172,37 @@ export default function ProgressPage() {
       <div className="dashboard-content">
         <section className="panel-card">
           <h2>Stage progression</h2>
-          <div className="game-list">
-            {playerProgress.map((game) => {
-              const status = game.playtime > 0 ? "Played" : "Not played yet";
-              return (
-                <Link href={game.href || "/dashboard"} key={game.title} className="game-list-item" style={{ display: 'flex', gap: 16 }}>
-                  {game.image && (
-                    <div style={{ width: 64, height: 64, borderRadius: 12, overflow: 'hidden', flexShrink: 0, border: '1px solid var(--border)' }}>
-                      <img src={game.image} alt={game.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          
+          {loadingProgress ? (
+             <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted)' }}>
+               Syncing progress from cloud...
+             </div>
+          ) : (
+            <div className="game-list">
+              {playerProgress.map((game) => {
+                const status = game.playtime > 0 ? "Played" : "Not played yet";
+                return (
+                  <Link href={game.href || "/dashboard"} key={game.title} className="game-list-item" style={{ display: 'flex', gap: 16 }}>
+                    {game.image && (
+                      <div style={{ width: 64, height: 64, borderRadius: 12, overflow: 'hidden', flexShrink: 0, border: '1px solid var(--border)' }}>
+                        <img src={game.image} alt={game.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    )}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <strong style={{ margin: 0, fontSize: '1.1rem' }}>{game.title}</strong>
+                      <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{status}</div>
                     </div>
-                  )}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <strong style={{ margin: 0, fontSize: '1.1rem' }}>{game.title}</strong>
-                    <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{status}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <span className="progress-badge" style={{ minWidth: 60, textAlign: "center" }}>
-                      {formatPlaytime(game.playtime)}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <span className="progress-badge" style={{ minWidth: 60, textAlign: "center" }}>
+                        {formatPlaytime(game.playtime)}
+                      </span>
+                      <span className="primary-button" style={{ minHeight: 36, padding: '0 16px', fontSize: '0.85rem' }}>Play now</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <aside className="panel-card">

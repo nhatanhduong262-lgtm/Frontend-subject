@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import ThemeToggle from "../components/ThemeToggle";
 import { normalizeGamePayload, buildGameCatalogSummary, updateGameInList, removeGameFromList } from "../server/gameCatalog";
 
 const demoGames = [
@@ -10,13 +11,23 @@ const demoGames = [
   { id: 3, title: "Crystal Drift", status: "New", players: 430, progress: 24, genre: "Adventure" },
 ];
 
-export default function AdminPage() {
+let cachedStats = { users: 0, activePlayers: 0, averageProgress: 0 };
+let cachedGames = demoGames;
+
+export default function AdminDashboard() {
   const router = useRouter();
   const [profile, setProfile] = useState(null);
-  const [games, setGames] = useState(demoGames);
+  const [stats, setStats] = useState(cachedStats);
+  const [games, setGames] = useState(cachedGames);
   const [form, setForm] = useState({ title: "", genre: "Action", status: "Live", stage: "Stage 1", description: "" });
   const [editingGameId, setEditingGameId] = useState(null);
   const [editForm, setEditForm] = useState({ title: "", genre: "Action", status: "Live", stage: "Stage 1", description: "", progress: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredGames = games.filter(game => 
+    game.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (game.genre || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     const token = window.localStorage.getItem("token");
@@ -33,29 +44,81 @@ export default function AdminPage() {
     }
 
     setProfile(savedProfile);
+
+    Promise.all([
+      fetch("/api/admin/summary", { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json()),
+      fetch("/api/games").then(res => res.json())
+    ])
+      .then(([summaryData, gamesData]) => {
+        if (summaryData.summary) {
+          const newStats = {
+            users: summaryData.summary.users || summaryData.summary.totalUsers || 0,
+            activePlayers: summaryData.summary.activePlayers || 0,
+            averageProgress: summaryData.summary.averageProgress || 0
+          };
+          cachedStats = newStats;
+          setStats(newStats);
+        }
+        
+        if (gamesData.games && gamesData.games.length > 0) {
+          // Merge real games from DB with progress stats from summary
+          const statsMap = {};
+          if (summaryData.summary && summaryData.summary.games) {
+            summaryData.summary.games.forEach(g => {
+              statsMap[g.title] = { players: g.players, progress: g.progress };
+            });
+          }
+          
+          const finalGames = gamesData.games.map(g => ({
+            ...g,
+            players: statsMap[g.title]?.players || 0,
+            progress: statsMap[g.title]?.progress || 0
+          }));
+          
+          cachedGames = finalGames;
+          setGames(finalGames);
+        }
+      })
+      .catch(err => console.error("Error fetching admin data:", err));
+
   }, [router]);
 
-  const handleAddGame = (event) => {
+  const handleAddGame = async (event) => {
     event.preventDefault();
 
     if (!form.title.trim()) return;
+    const token = window.localStorage.getItem("token");
 
-    const nextGame = normalizeGamePayload(
-      {
-        ...form,
-        title: form.title,
-        genre: form.genre,
-        status: form.status,
-        stage: form.stage,
-        description: form.description,
-        progress: 0,
-        players: 0,
-      },
-      Date.now(),
-    );
-
-    setGames((current) => [nextGame, ...current]);
-    setForm({ title: "", genre: "Action", status: "Live", stage: "Stage 1", description: "" });
+    try {
+      const res = await fetch("/api/admin/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...form, progress: 0, players: 0 })
+      });
+      
+      if (res.ok) {
+        const { game } = await res.json();
+        
+        const existingIndex = games.findIndex(g => g.id === game.id);
+        let newGames;
+        if (existingIndex >= 0) {
+          newGames = [...games];
+          newGames[existingIndex] = { ...games[existingIndex], ...game };
+        } else {
+          newGames = [game, ...games];
+        }
+        
+        cachedGames = newGames;
+        setGames(newGames);
+        setForm({ title: "", genre: "Action", status: "Live", stage: "Stage 1", description: "" });
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to add game");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error adding game");
+    }
   };
 
   const handleManageGame = (game) => {
@@ -70,31 +133,59 @@ export default function AdminPage() {
     });
   };
 
-  const handleUpdateGame = (event) => {
+  const handleUpdateGame = async (event) => {
     event.preventDefault();
-
     if (!editingGameId) return;
 
-    setGames((current) => updateGameInList(current, editingGameId, {
-      title: editForm.title,
-      genre: editForm.genre,
-      status: editForm.status,
-      stage: editForm.stage,
-      description: editForm.description,
-      progress: editForm.progress,
-      players: current.find((game) => Number(game.id) === Number(editingGameId))?.players ?? 0,
-    }));
-
-    setEditingGameId(null);
-    setEditForm({ title: "", genre: "Action", status: "Live", stage: "Stage 1", description: "", progress: 0 });
+    const token = window.localStorage.getItem("token");
+    try {
+      const res = await fetch(`/api/admin/games/${editingGameId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(editForm)
+      });
+      if (res.ok) {
+        const { game } = await res.json();
+        // Giữ lại các stats (players, progress) do API /games chỉ trả về info gốc, còn ở Admin thì games có kèm stats
+        const newGames = games.map(g => Number(g.id) === Number(game.id) ? { ...g, ...game } : g);
+        cachedGames = newGames;
+        setGames(newGames);
+        setEditingGameId(null);
+        setEditForm({ title: "", genre: "Action", status: "Live", stage: "Stage 1", description: "", progress: 0 });
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to update game");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error updating game");
+    }
   };
 
-  const handleRemoveGame = (gameId) => {
-    setGames((current) => removeGameFromList(current, gameId));
-
-    if (Number(editingGameId) === Number(gameId)) {
-      setEditingGameId(null);
-      setEditForm({ title: "", genre: "Action", status: "Live", stage: "Stage 1", description: "", progress: 0 });
+  const handleRemoveGame = async (gameId) => {
+    if (!confirm("Are you sure you want to remove this game?")) return;
+    
+    const token = window.localStorage.getItem("token");
+    try {
+      const res = await fetch(`/api/admin/games/${gameId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const newGames = games.filter(g => Number(g.id) !== Number(gameId));
+        cachedGames = newGames;
+        setGames(newGames);
+        if (Number(editingGameId) === Number(gameId)) {
+          setEditingGameId(null);
+          setEditForm({ title: "", genre: "Action", status: "Live", stage: "Stage 1", description: "", progress: 0 });
+        }
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to remove game");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error removing game");
     }
   };
 
@@ -142,6 +233,7 @@ export default function AdminPage() {
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/progress" className="ghost-button">Progress</Link>
           <Link href="/users" className="ghost-button">Users</Link>
+          <ThemeToggle />
           <button type="button" className="ghost-button" onClick={handleLogout}>Logout</button>
         </div>
       </header>
@@ -149,7 +241,7 @@ export default function AdminPage() {
       <div className="stats-grid" style={{ position: "relative", zIndex: 1 }}>
         <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-1, 16, 185, 129), 0.18), transparent)", borderColor: "rgba(var(--card-tint-1, 94, 234, 212), 0.36)" }}>
           <span className="label">Total users</span>
-          <strong>1,248</strong>
+          <strong>{stats.users.toLocaleString()}</strong>
         </div>
         <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-2, 45, 212, 191), 0.18), transparent)", borderColor: "rgba(var(--card-tint-2, 45, 212, 191), 0.32)" }}>
           <span className="label">Games live</span>
@@ -157,11 +249,11 @@ export default function AdminPage() {
         </div>
         <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-3, 59, 130, 246), 0.18), transparent)", borderColor: "rgba(var(--card-tint-3, 96, 165, 250), 0.28)" }}>
           <span className="label">Avg. completion</span>
-          <strong>{buildGameCatalogSummary(games).averageProgress}%</strong>
+          <strong>{stats.averageProgress}%</strong>
         </div>
         <div className="stat-card" style={{ background: "linear-gradient(180deg, rgba(var(--card-tint-4, 168, 85, 247), 0.20), transparent)", borderColor: "rgba(var(--card-tint-4, 192, 132, 252), 0.30)" }}>
           <span className="label">Active players</span>
-          <strong>{games.reduce((sum, game) => sum + (game.players || 0), 0).toLocaleString()}</strong>
+          <strong>{stats.activePlayers.toLocaleString()}</strong>
         </div>
       </div>
 
@@ -169,8 +261,28 @@ export default function AdminPage() {
         <section className="panel-card" style={{ boxShadow: "0 0 28px rgba(34,211,238,0.08)" }}>
           <div style={panelHeaderStyle}>Library Management</div>
           <h2 style={{ marginTop: 0, color: "#ecfeff" }}>Game management</h2>
+          
+          <input 
+            className="form-input"
+            type="text"
+            placeholder="🔍 Search games..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: "100%", marginBottom: 20, color: "#fff", backgroundColor: "rgba(15,23,42,0.6)", border: "1px solid rgba(255,255,255,0.2)", padding: "10px 14px", borderRadius: 8 }}
+          />
+
+          <datalist id="game-titles">
+            <option value="Flappy Bird" />
+            <option value="Tetris" />
+            <option value="Pacman" />
+            <option value="Snake" />
+            <option value="Space Invaders" />
+            <option value="2048" />
+            {games.map(g => <option key={g.id} value={g.title} />)}
+          </datalist>
+
           <div className="game-list">
-            {games.map((game) => {
+            {filteredGames.map((game) => {
               const palette = {
                 Action: ["#7c3aed", "#22d3ee"],
                 Racing: ["#f97316", "#facc15"],
@@ -200,23 +312,23 @@ export default function AdminPage() {
                       boxShadow: "inset 0 0 0 4px rgba(15,23,42,0.15)",
                       position: "relative",
                       overflow: "hidden",
+                      flexShrink: 0
                     }}>
-                      <div style={{
-                        position: "absolute",
-                        inset: 0,
-                        background: "repeating-linear-gradient(0deg, rgba(255,255,255,0.18) 0, rgba(255,255,255,0.18) 8px, rgba(255,255,255,0.04) 8px, rgba(255,255,255,0.04) 16px)",
-                        opacity: 0.75,
-                      }} />
-                      <div style={{
-                        position: "absolute",
-                        left: 12,
-                        right: 12,
-                        bottom: 12,
-                        top: 12,
-                        borderRadius: 12,
-                        background: "rgba(15,23,42,0.18)",
-                        border: "2px solid rgba(255,255,255,0.20)",
-                      }} />
+                      {game.image ? (
+                        <img src={game.image} alt={game.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: "100%",
+                          height: "100%",
+                          fontSize: 32,
+                          background: "linear-gradient(135deg, rgba(255,255,255,0.15), rgba(15,23,42,0.15))"
+                        }}>
+                          🕹️
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ flex: 1 }}>
@@ -244,6 +356,9 @@ export default function AdminPage() {
               <div className="form-field">
                 <label>Game title</label>
                 <input
+                  list={editForm.title.length > 0 ? "game-titles" : undefined}
+                  className="form-input"
+                  style={{ color: "#fff", backgroundColor: "rgba(15,23,42,0.6)", border: "1px solid rgba(255,255,255,0.2)", padding: "10px 14px", borderRadius: 8 }}
                   value={editForm.title}
                   onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))}
                 />
@@ -252,55 +367,41 @@ export default function AdminPage() {
               <div className="form-field">
                 <label>Genre</label>
                 <select
+                  className="form-input"
+                  style={{ color: "#fff", backgroundColor: "rgba(15,23,42,0.6)", border: "1px solid rgba(255,255,255,0.2)", padding: "10px 14px", borderRadius: 8 }}
                   value={editForm.genre}
                   onChange={(event) => setEditForm((current) => ({ ...current, genre: event.target.value }))}
                 >
-                  <option value="Action">Action</option>
-                  <option value="Racing">Racing</option>
-                  <option value="RPG">RPG</option>
-                  <option value="Adventure">Adventure</option>
-                  <option value="Strategy">Strategy</option>
+                  <option value="Arcade" style={{ color: "#000" }}>Arcade</option>
+                  <option value="Puzzle" style={{ color: "#000" }}>Puzzle</option>
+                  <option value="Speed" style={{ color: "#000" }}>Speed</option>
+                  <option value="Chance" style={{ color: "#000" }}>Chance</option>
+                  <option value="Action" style={{ color: "#000" }}>Action</option>
+                  <option value="Memory" style={{ color: "#000" }}>Memory</option>
+                  <option value="Action RPG" style={{ color: "#000" }}>Action RPG</option>
+                  <option value="Adventure" style={{ color: "#000" }}>Adventure</option>
+                  <option value="Shooter" style={{ color: "#000" }}>Shooter</option>
                 </select>
               </div>
 
               <div className="form-field">
                 <label>Status</label>
                 <select
+                  className="form-input"
+                  style={{ color: "#fff", backgroundColor: "rgba(15,23,42,0.6)", border: "1px solid rgba(255,255,255,0.2)", padding: "10px 14px", borderRadius: 8 }}
                   value={editForm.status}
                   onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value }))}
                 >
-                  <option value="Live">Live</option>
-                  <option value="New">New</option>
-                  <option value="Coming Soon">Coming Soon</option>
+                  <option value="Live" style={{ color: "#000" }}>Live</option>
+                  <option value="New" style={{ color: "#000" }}>New</option>
+                  <option value="Coming Soon" style={{ color: "#000" }}>Coming Soon</option>
+                  <option value="Maintenance" style={{ color: "#000" }}>Maintenance</option>
                 </select>
               </div>
 
-              <div className="form-field">
-                <label>Stage</label>
-                <input
-                  value={editForm.stage}
-                  onChange={(event) => setEditForm((current) => ({ ...current, stage: event.target.value }))}
-                />
-              </div>
 
-              <div className="form-field">
-                <label>Progress (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={editForm.progress}
-                  onChange={(event) => setEditForm((current) => ({ ...current, progress: Number(event.target.value || 0) }))}
-                />
-              </div>
 
-              <div className="form-field">
-                <label>Description</label>
-                <input
-                  value={editForm.description}
-                  onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))}
-                />
-              </div>
+
 
               <div style={{ display: "flex", gap: 8 }}>
                 <button type="submit" className="primary-button" style={{ flex: 1 }}>Save changes</button>
@@ -317,6 +418,9 @@ export default function AdminPage() {
             <div className="form-field">
               <label>Game title</label>
               <input
+                list={form.title.length > 0 ? "game-titles" : undefined}
+                className="form-input"
+                style={{ color: "#fff", backgroundColor: "rgba(15,23,42,0.6)", border: "1px solid rgba(255,255,255,0.2)", padding: "10px 14px", borderRadius: 8 }}
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                 placeholder="Enter a game title"
@@ -326,48 +430,43 @@ export default function AdminPage() {
             <div className="form-field">
               <label>Genre</label>
               <select
+                className="form-input"
+                style={{ color: "#fff", backgroundColor: "rgba(15,23,42,0.6)", border: "1px solid rgba(255,255,255,0.2)", padding: "10px 14px", borderRadius: 8 }}
                 value={form.genre}
                 onChange={(event) => setForm((current) => ({ ...current, genre: event.target.value }))}
               >
-                <option value="Action">Action</option>
-                <option value="Racing">Racing</option>
-                <option value="RPG">RPG</option>
-                <option value="Adventure">Adventure</option>
-                <option value="Strategy">Strategy</option>
+                <option value="Arcade" style={{ color: "#000" }}>Arcade</option>
+                <option value="Puzzle" style={{ color: "#000" }}>Puzzle</option>
+                <option value="Speed" style={{ color: "#000" }}>Speed</option>
+                <option value="Chance" style={{ color: "#000" }}>Chance</option>
+                <option value="Action" style={{ color: "#000" }}>Action</option>
+                <option value="Memory" style={{ color: "#000" }}>Memory</option>
+                <option value="Action RPG" style={{ color: "#000" }}>Action RPG</option>
+                <option value="Adventure" style={{ color: "#000" }}>Adventure</option>
+                <option value="Shooter" style={{ color: "#000" }}>Shooter</option>
               </select>
             </div>
 
             <div className="form-field">
               <label>Status</label>
               <select
+                className="form-input"
+                style={{ color: "#fff", backgroundColor: "rgba(15,23,42,0.6)", border: "1px solid rgba(255,255,255,0.2)", padding: "10px 14px", borderRadius: 8 }}
                 value={form.status}
                 onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
               >
-                <option value="Live">Live</option>
-                <option value="New">New</option>
-                <option value="Coming Soon">Coming Soon</option>
+                <option value="Live" style={{ color: "#000" }}>Live</option>
+                <option value="New" style={{ color: "#000" }}>New</option>
+                <option value="Coming Soon" style={{ color: "#000" }}>Coming Soon</option>
+                <option value="Maintenance" style={{ color: "#000" }}>Maintenance</option>
               </select>
             </div>
 
-            <div className="form-field">
-              <label>Stage</label>
-              <input
-                value={form.stage}
-                onChange={(event) => setForm((current) => ({ ...current, stage: event.target.value }))}
-                placeholder="Stage 1"
-              />
-            </div>
 
-            <div className="form-field">
-              <label>Description</label>
-              <input
-                value={form.description}
-                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                placeholder="Short challenge description"
-              />
-            </div>
 
-            <button type="submit" className="primary-button" style={{ width: "100%", justifyContent: "center" }}>Add new game</button>
+
+
+            <button type="submit" className="primary-button" style={{ width: "100%", justifyContent: "center" }}>Save game</button>
           </form>
         </aside>
       </div>

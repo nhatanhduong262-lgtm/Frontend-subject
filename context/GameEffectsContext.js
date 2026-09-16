@@ -7,6 +7,7 @@ const GameEffectsContext = createContext(null);
 export function GameEffectsProvider({ children }) {
   const [isMuted, setIsMuted] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [lastScoreSavedAt, setLastScoreSavedAt] = useState(Date.now());
 
   // Initialize from localStorage
   useEffect(() => {
@@ -26,8 +27,17 @@ export function GameEffectsProvider({ children }) {
   const playSound = useCallback((frequency, type, duration, vol = 0.1) => {
     if (isMuted) return;
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AudioContext();
+      if (!window.audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        window.audioCtx = new AudioContext();
+      }
+      const ctx = window.audioCtx;
+
+      // Ensure context is running (browsers suspend it before user interaction)
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
@@ -152,6 +162,7 @@ export function GameEffectsProvider({ children }) {
       
       if (response.ok) {
         showCloudSyncToast(`☁️ Saved ${score} points to cloud!`);
+        setLastScoreSavedAt(Date.now());
       }
     } catch (err) {
       console.error("Failed to sync score to cloud", err);
@@ -165,7 +176,8 @@ export function GameEffectsProvider({ children }) {
       playSnakeEatSound, playPaddleHitSound, playWallHitSound,
       playCardFlipSound, playMatchSuccessSound, playMismatchSound,
       playAlertSound, playErrorSound, playDiceRollSound,
-      fireConfetti, showCloudSyncToast, saveScoreToCloud
+      fireConfetti, showCloudSyncToast, saveScoreToCloud,
+      lastScoreSavedAt
     }}>
       {children}
       

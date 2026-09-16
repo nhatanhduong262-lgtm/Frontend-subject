@@ -89,6 +89,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
@@ -98,6 +99,7 @@ export default function ProfilePage() {
     try {
       const savedProfile = JSON.parse(window.localStorage.getItem("profile") || "null");
       if (!savedProfile) return;
+      setIsAdmin(savedProfile.role === "admin");
       const timer = window.setTimeout(() => {
         setName(savedProfile.name || "");
         setEmail(savedProfile.email || "");
@@ -284,7 +286,9 @@ export default function ProfilePage() {
               <div style={{ marginTop: 28, paddingTop: 24, borderTop: `1px solid ${t.cardBorder}` }}>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <Link href="/messages" style={{ padding: "10px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: isLight ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.15)", border: isLight ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(16,185,129,0.35)", color: isLight ? "#047857" : "#10b981", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>💬 Tin nhắn & Bạn bè</Link>
-                  <Link href="/users" style={{ padding: "10px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: isLight ? "rgba(4,120,87,0.1)" : "rgba(15,118,110,0.15)", border: isLight ? "1px solid rgba(4,120,87,0.2)" : "1px solid rgba(15,118,110,0.35)", color: isLight ? "#047857" : "#5eead4", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>🏆 Users Dashboard</Link>
+                  {isAdmin && (
+                    <Link href="/users" style={{ padding: "10px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: isLight ? "rgba(4,120,87,0.1)" : "rgba(15,118,110,0.15)", border: isLight ? "1px solid rgba(4,120,87,0.2)" : "1px solid rgba(15,118,110,0.35)", color: isLight ? "#047857" : "#5eead4", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>🏆 Users Dashboard</Link>
+                  )}
                   <BackButton label="← Back to Login" />
                 </div>
               </div>

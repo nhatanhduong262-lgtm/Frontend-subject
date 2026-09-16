@@ -6,19 +6,7 @@ import BackButton from "../components/BackButton";
 import { getQuestState, getRankFromPoints, claimQuestReward } from "../lib/quests";
 import { getStoredPlayerProgress } from "../lib/playerProgress";
 
-const demoGames = [
-  { id: 1, title: "Sky Hopper", genre: "Arcade", stage: "Flappy-style", progress: 78, status: "Live", href: "/flappy", image: "/images/sky_hopper_1789299722470.png" },
-  { id: 2, title: "Neon Match", genre: "Puzzle", stage: "Memory", progress: 64, status: "Live", href: "/memory", image: "/images/neon_match_1789299759422.png" },
-  { id: 3, title: "Pulse Reflex", genre: "Speed", stage: "Reaction", progress: 69, status: "Live", href: "/reaction", image: "/images/pulse_reflex_1789299783039.png" },
-  { id: 4, title: "Lucky Dice", genre: "Chance", stage: "Dice duel", progress: 57, status: "Live", href: "/dice", image: "/images/lucky_dice_1789299795505.png" },
-  { id: 5, title: "Neon Snake", genre: "Arcade", stage: "Grid chase", progress: 71, status: "Live", href: "/snake", image: "/images/neon_snake_1789299734826.png" },
-  { id: 6, title: "Pong Arena", genre: "Arcade", stage: "2-player duel", progress: 83, status: "Live", href: "/pong", image: "/images/pong_arena_1789299746830.png" },
-  { id: 7, title: "Aim Blaster", genre: "Action", stage: "Target rush", progress: 0, status: "Live", href: "/aimblaster", image: "/images/aim_blaster.png" },
-  { id: 8, title: "Number Crush", genre: "Puzzle", stage: "Speed order", progress: 0, status: "Live", href: "/numbercrush", image: "/images/number_crush.png" },
-  { id: 9, title: "Color Storm", genre: "Memory", stage: "Pattern recall", progress: 0, status: "Live", href: "/colorstorm", image: "/images/color_storm.png" },
-  { id: 10, title: "Brick Blaster", genre: "Arcade", stage: "Break em all", progress: 0, status: "New", href: "/brickblaster", image: "/images/brick_blaster.png" },
-  { id: 11, title: "Word Blitz", genre: "Speed", stage: "Typing rush", progress: 0, status: "New", href: "/wordblitz", image: "/images/word_blitz.png" },
-];
+
 
 const genres = ["All", "Arcade", "Puzzle", "Speed", "Chance", "Action", "Memory", "Action RPG", "Adventure", "Shooter"];
 
@@ -28,6 +16,7 @@ export default function GamesPage() {
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [questState, setQuestState] = useState(null);
   const [playerProgress, setPlayerProgress] = useState([]);
+  const [games, setGames] = useState([]);
 
   useEffect(() => {
     if (!window.localStorage.getItem("userId")) {
@@ -36,6 +25,13 @@ export default function GamesPage() {
     }
     
     setQuestState(getQuestState());
+    
+    fetch("/api/games")
+      .then(res => res.json())
+      .then(data => {
+        if (data.games) setGames(data.games);
+      })
+      .catch(console.error);
     const handleQuestUpdate = (e) => setQuestState(e.detail);
     window.addEventListener('pixelpulse-quests-updated', handleQuestUpdate);
 
@@ -52,11 +48,15 @@ export default function GamesPage() {
   const currentRank = getRankFromPoints(questState?.totalPoints || 0);
 
   const mergedGames = useMemo(() => {
-    return demoGames.map(game => {
+    return games.map(game => {
        const progressRecord = playerProgress.find(p => p.title === game.title);
-       return { ...game, playtime: progressRecord?.playtime || 0 };
+       return { 
+         ...game, 
+         playtime: progressRecord?.playtime || 0,
+         progress: Number(progressRecord?.progress) || 0 
+       };
     });
-  }, [playerProgress]);
+  }, [games, playerProgress]);
 
   const filteredGames = useMemo(() => {
     return mergedGames.filter((game) => {
@@ -111,15 +111,15 @@ export default function GamesPage() {
       <div className="stats-grid">
         <div className="stat-card">
           <span className="label">Total games</span>
-          <strong>{demoGames.length}</strong>
+          <strong>{mergedGames.length}</strong>
         </div>
         <div className="stat-card">
           <span className="label">Live quests</span>
-          <strong>{demoGames.filter((game) => game.status === "Live").length}</strong>
+          <strong>{mergedGames.filter((game) => game.status === "Live").length}</strong>
         </div>
         <div className="stat-card">
           <span className="label">Avg. progress</span>
-          <strong>{Math.round(demoGames.reduce((sum, game) => sum + game.progress, 0) / demoGames.length)}%</strong>
+          <strong>{mergedGames.length > 0 ? Math.round(mergedGames.reduce((sum, game) => sum + game.progress, 0) / mergedGames.length) : 0}%</strong>
         </div>
         <div className="stat-card">
           <span className="label">Player rank</span>
@@ -148,7 +148,7 @@ export default function GamesPage() {
                 padding: '6px 16px',
                 borderRadius: 20,
                 border: 'none',
-                background: selectedGenre === genre ? 'var(--accent-teal)' : 'rgba(255,255,255,0.05)',
+                background: selectedGenre === genre ? '#3dd9ff' : 'rgba(255,255,255,0.05)',
                 color: selectedGenre === genre ? '#000' : 'var(--text-main)',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -172,19 +172,26 @@ export default function GamesPage() {
             <div className="game-list">
               {filteredGames.map((game) => (
                 <div key={game.id} className="game-list-item" style={{ display: "flex", gap: 16 }}>
-                  {game.image && (
-                    <div style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: 14,
-                      overflow: "hidden",
-                      flexShrink: 0,
-                      boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
-                      border: "1px solid var(--border)"
-                    }}>
-                      <img src={game.image} alt={game.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    </div>
-                  )}
+                  <div style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    flexShrink: 0,
+                    boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
+                    border: "1px solid var(--border)",
+                    background: "linear-gradient(135deg, #1e293b, #0f172a)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 32
+                  }}>
+                    {game.image ? (
+                      <img src={game.image} alt={game.title} style={{ width: "100%", height: "100%", objectFit: "cover", filter: (game.status === 'Maintenance' || game.status === 'Coming Soon') ? 'grayscale(100%) opacity(50%)' : 'none' }} />
+                    ) : (
+                      "🕹️"
+                    )}
+                  </div>
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                     <strong style={{ fontSize: "1.15rem", margin: 0 }}>{game.title}</strong>
                     <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 6 }}>
@@ -196,9 +203,15 @@ export default function GamesPage() {
                     <span className="progress-badge" style={{ minWidth: 60, textAlign: "center" }}>
                       {formatPlaytime(game.playtime)}
                     </span>
-                    <Link href={game.href || "/dashboard"} className="primary-button" style={{ minHeight: 40, padding: "0 18px" }}>
-                      Play now
-                    </Link>
+                    {game.status === 'Maintenance' || game.status === 'Coming Soon' ? (
+                      <span className="primary-button" style={{ minHeight: 40, padding: "0 18px", background: "var(--muted)", cursor: "not-allowed", opacity: 0.7 }}>
+                        {game.status === 'Maintenance' ? 'Maintenance' : 'Coming Soon'}
+                      </span>
+                    ) : (
+                      <Link href={game.href || "/dashboard"} className="primary-button" style={{ minHeight: 40, padding: "0 18px" }}>
+                        Play now
+                      </Link>
+                    )}
                   </div>
                 </div>
               ))}

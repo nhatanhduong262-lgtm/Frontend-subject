@@ -35,8 +35,13 @@ export default function DashboardPage() {
   const { isLight } = useTheme();
   const [profile, setProfile] = useState(null);
   const [playerProgress, setPlayerProgress] = useState(() => getStoredPlayerProgress());
+  const [loadingProgress, setLoadingProgress] = useState(() => {
+    const initial = getStoredPlayerProgress();
+    return !initial || initial.length === 0 || !initial.some(g => (g.playtime || 0) > 0 || (g.score || 0) > 0);
+  });
   const [questState, setQuestState] = useState(null);
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
+  const [showNextLevelXp, setShowNextLevelXp] = useState(false);
   const [greeting, setGreeting] = useState("Welcome back");
   const unreadCount = useUnreadMessages();
 
@@ -105,6 +110,10 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    const initialProgress = getStoredPlayerProgress();
+    setPlayerProgress(initialProgress);
+    const hasAnyProgress = initialProgress.some(g => (g.playtime || 0) > 0 || (g.score || 0) > 0);
+    setLoadingProgress(!hasAnyProgress);
     setQuestState(getQuestState());
     const handleQuestUpdate = (e) => setQuestState(e.detail);
     window.addEventListener("pixelpulse-quests-updated", handleQuestUpdate);
@@ -132,7 +141,10 @@ export default function DashboardPage() {
     window.addEventListener("storage", handleStorage);
     const hydrateProgress = async () => {
       const nextProgress = await loadPlayerProgressFromDatabase();
-      if (active) setPlayerProgress(nextProgress);
+      if (active) {
+        setPlayerProgress(nextProgress);
+        setLoadingProgress(false);
+      }
     };
     hydrateProgress();
     const userId = window.localStorage.getItem("userId");
@@ -165,7 +177,8 @@ export default function DashboardPage() {
   const completedStages = questState?.activeQuests?.filter(q => q.claimed || q.current >= q.target).length || 0;
   const totalQuests = questState?.activeQuests?.length || 3;
   const xp = playerProgress.reduce((sum, g) => sum + (Number(g.score) || 0), 0);
-  const level = Math.max(1, Math.round(averageProgress / 5));
+  const level = Math.floor(xp / 100) + 1;
+  const xpNeeded = (level * 100) - xp;
   const currentPoints = questState?.totalPoints || 0;
   const currentRank = getRankFromPoints(currentPoints);
   const sortedRanks = [...RANKS].sort((a, b) => a.minPoints - b.minPoints);
@@ -181,7 +194,7 @@ export default function DashboardPage() {
 
   const statCards = [
     { label: "Player Level", value: level, icon: "⚡", color: "#8b5cf6", glow: "rgba(139,92,246,0.4)" },
-    { label: "Total XP", value: xp.toLocaleString(), icon: "⭐", color: "#f59e0b", glow: "rgba(245,158,11,0.4)" },
+    { label: "Total XP", value: showNextLevelXp ? `Need ${xpNeeded}` : xp.toLocaleString(), icon: "⭐", color: "#f59e0b", glow: "rgba(245,158,11,0.4)", isXp: true },
     { label: "Quests Done", value: `${completedStages}/${totalQuests}`, icon: "🎯", color: isLight ? "#0369a1" : "#3dd9ff", glow: "rgba(61,217,255,0.4)" },
     { label: "Rank", value: currentRank.name, icon: "🏆", color: currentRank.color, glow: `${currentRank.color}66`, isRank: true, gradient: currentRank.gradient },
   ];
@@ -310,10 +323,10 @@ export default function DashboardPage() {
             <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:16, marginBottom:28, animation:"slideInUp 0.5s ease 0.1s both" }}>
               {statCards.map((card,i)=>(
                 <div key={card.label} className="stat-hover"
-                  onClick={card.isRank?()=>setIsRankModalOpen(true):undefined}
+                  onClick={card.isRank ? () => setIsRankModalOpen(true) : card.isXp ? () => setShowNextLevelXp(!showNextLevelXp) : undefined}
                   style={{
                     padding:"22px 20px", borderRadius:20,
-                    cursor:card.isRank?"pointer":"default",
+                    cursor:(card.isRank || card.isXp) ? "pointer" : "default",
                     background:t.cardBg(card.color),
                     border:`1px solid ${t.cardBorder(card.color)}`,
                     boxShadow:isLight?`0 4px 16px rgba(90,60,30,0.08)`:`0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)`,

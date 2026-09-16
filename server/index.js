@@ -150,17 +150,76 @@ app.get('/users', requireAuth(['admin']), async (req, res) => {
 app.get('/admin/summary', requireAuth(['admin']), async (req, res) => {
   try {
     const supabaseClient = getSupabaseClient();
-    const { count: usersCount } = await supabaseClient
-      .from('users')
-      .select('*', { count: 'exact', head: true });
+    
+    // Perform a standard select and get the length to avoid count: 'exact' issues if any
+    const { data: users, error } = await supabaseClient.from('users').select('progress_data');
+    
+    if (error) {
+      console.error("Supabase select users error:", error);
+      return res.status(500).json({ message: "Failed to fetch users" });
+    }
+
+    let totalProgress = 0;
+    let progressCount = 0;
+    const gameStats = {};
+    const gameGenres = {
+      "Sky Hopper": "Arcade", "Neon Match": "Puzzle", "Pulse Reflex": "Speed",
+      "Lucky Dice": "Chance", "Neon Snake": "Arcade", "Pong Arena": "Arcade",
+      "Aim Blaster": "Action", "Number Crush": "Puzzle", "Color Storm": "Memory",
+      "Brick Blaster": "Arcade", "Word Blitz": "Speed"
+    };
+
+    let activePlayers = 0;
+
+    (users || []).forEach(u => {
+      let pData = [];
+      if (Array.isArray(u.progress_data)) {
+        pData = u.progress_data;
+      } else if (typeof u.progress_data === 'string') {
+        try { pData = JSON.parse(u.progress_data); } catch (e) { pData = []; }
+      }
+      
+      if (!Array.isArray(pData)) pData = [];
+      if (pData.length > 0) activePlayers++;
+
+      pData.forEach(game => {
+        if (!game || !game.title) return;
+        const prog = Number(game.progress) || 0;
+        totalProgress += prog;
+        progressCount++;
+        
+        if (!gameStats[game.title]) {
+          gameStats[game.title] = { 
+            id: game.title, 
+            title: game.title, 
+            players: 0, 
+            totalProgress: 0, 
+            status: "Live", 
+            genre: gameGenres[game.title] || "Action" 
+          };
+        }
+        gameStats[game.title].players += 1;
+        gameStats[game.title].totalProgress += prog;
+      });
+    });
+
+    const avgProgress = progressCount > 0 ? Math.round(totalProgress / progressCount) : 0;
+    const realGames = Object.values(gameStats).map(g => ({
+      ...g,
+      progress: Math.round(g.totalProgress / g.players)
+    })).sort((a, b) => b.players - a.players);
 
     res.json({
       summary: {
-        users: usersCount || 0,
+        users: (users || []).length,
+        activePlayers,
+        averageProgress: avgProgress,
         role: 'admin',
+        games: realGames
       },
     });
   } catch (error) {
+    console.error("Admin summary catch block:", error);
     return res.status(500).json({ message: error.message || 'Database configuration is missing.' });
   }
 });
@@ -752,6 +811,115 @@ app.post('/messages', requireAuth(), async (req, res) => {
     return res.status(500).json({ message: error.message || 'Database error.' });
   }
 });
+
+// --- GAME CATALOG ENDPOINTS ---
+app.get('/games', async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { data: games, error } = await supabaseClient
+      .from('games')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) {
+      if (error.code === '42P01') return res.json({ games: [] }); // table doesn't exist
+      return res.status(500).json({ message: 'Failed to fetch games' });
+    }
+    res.json({ games: games || [] });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/admin/games', requireAuth(['admin']), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const { title, genre, stage, status, href, image } = req.body;
+    
+    if (!title || !genre) return res.status(400).json({ message: 'Title and genre are required' });
+
+    // Check if game already exists by title
+    const { data: existingGames } = await supabaseClient
+      .from('games')
+      .select('*')
+      .ilike('title', title)
+      .order('id', { ascending: true })
+      .limit(1);
+      
+    let game, error;
+    if (existingGames && existingGames.length > 0) {
+      // Update existing
+      const existing = existingGames[0];
+      const updates = { genre, stage, status, href };
+      if (image !== undefined) updates.image = image;
+      
+      const updateResult = await supabaseClient
+        .from('games')
+        .update(updates)
+        .eq('id', existing.id)
+        .select()
+        .single();
+      game = updateResult.data;
+      error = updateResult.error;
+    } else {
+      // Insert new
+      const insertResult = await supabaseClient
+        .from('games')
+        .insert([{ title, genre, stage, status, href, image }])
+        .select()
+        .single();
+      game = insertResult.data;
+      error = insertResult.error;
+    }
+
+    if (error) return res.status(500).json({ message: error.message });
+    res.status(200).json({ game });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.put('/admin/games/:id', requireAuth(['admin']), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const id = req.params.id;
+    const { title, genre, stage, status, href, image, description } = req.body;
+    const updates = { title, genre, stage, status, href, image, description };
+    
+    // Remove undefined properties so we only update what was provided
+    Object.keys(updates).forEach(key => updates[key] === undefined && delete updates[key]);
+
+    const { data: game, error } = await supabaseClient
+      .from('games')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return res.status(500).json({ message: error.message });
+    res.json({ game });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.delete('/admin/games/:id', requireAuth(['admin']), async (req, res) => {
+  try {
+    const supabaseClient = getSupabaseClient();
+    const id = req.params.id;
+
+    const { error } = await supabaseClient
+      .from('games')
+      .delete()
+      .eq('id', id);
+
+    if (error) return res.status(500).json({ message: error.message });
+    res.json({ message: 'Game deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+// --------------------------------
 
 if (require.main === module) {
   app.listen(port, () => {

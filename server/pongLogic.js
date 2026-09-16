@@ -16,8 +16,8 @@ function stepPongState(state, controls = {}) {
   const leftMove = controls.leftDown ? 8 : controls.leftUp ? -8 : 0;
   const rightMove = controls.rightDown ? 8 : controls.rightUp ? -8 : 0;
 
-  const nextLeftY = Math.min(430, Math.max(0, state.leftY + leftMove));
-  const nextRightY = Math.min(430, Math.max(0, state.rightY + rightMove));
+  const nextLeftY = Math.min(480, Math.max(0, state.leftY + leftMove));
+  const nextRightY = Math.min(480, Math.max(0, state.rightY + rightMove));
 
   let nextBallX = state.ballX + state.vx;
   let nextBallY = state.ballY + state.vy;
@@ -26,19 +26,19 @@ function stepPongState(state, controls = {}) {
   let leftScore = state.leftScore;
   let rightScore = state.rightScore;
 
-  if (nextBallY <= 0 || nextBallY >= 480) {
+  if (nextBallY <= 0 || nextBallY >= 582) {
     nextVy *= -1;
-    nextBallY = Math.min(480, Math.max(0, nextBallY));
+    nextBallY = Math.min(582, Math.max(0, nextBallY));
   }
 
-  if (nextBallX <= 25 && nextBallY >= nextLeftY && nextBallY <= nextLeftY + 100) {
+  if (nextBallX <= 36 && nextBallX >= 10 && nextBallY + 18 >= nextLeftY && nextBallY <= nextLeftY + 120) {
     nextVx = Math.abs(nextVx) + 0.5;
-    nextBallX = 25;
+    nextBallX = 36;
   }
 
-  if (nextBallX >= 775 && nextBallY >= nextRightY && nextBallY <= nextRightY + 100) {
+  if (nextBallX + 18 >= 764 && nextBallX <= 790 && nextBallY + 18 >= nextRightY && nextBallY <= nextRightY + 120) {
     nextVx = -Math.abs(nextVx) - 0.5;
-    nextBallX = 775;
+    nextBallX = 746;
   }
 
   if (nextBallX < 0) {
