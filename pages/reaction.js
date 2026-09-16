@@ -197,7 +197,7 @@ export default function ReactionPage() {
       <section className="panel-card" style={{ padding: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
           <div>
-            <h2 style={{ margin: 0 }}>Click the arena when it turns green.</h2>
+            <h2 style={{ margin: 0 }}>Click or tap the arena when it turns green.</h2>
             <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>{message}</p>
           </div>
 
@@ -209,6 +209,7 @@ export default function ReactionPage() {
         <button
           type="button"
           onClick={handlePress}
+          onTouchStart={(e) => { e.preventDefault(); handlePress(); }}
           style={{
             width: "100%",
             minHeight: 400,

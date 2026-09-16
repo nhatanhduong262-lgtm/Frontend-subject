@@ -304,7 +304,7 @@ export default function DashboardPage() {
               </div>
 
               {/* XP bar */}
-              <div style={{ minWidth:220, background:isLight?"rgba(90,60,30,0.05)":"rgba(255,255,255,0.03)", border:`1px solid ${t.panelBorder}`, borderRadius:16, padding:"16px 18px", position:"relative", zIndex:1 }}>
+              <div className="w-full sm:w-auto" style={{ minWidth:220, background:isLight?"rgba(90,60,30,0.05)":"rgba(255,255,255,0.03)", border:`1px solid ${t.panelBorder}`, borderRadius:16, padding:"16px 18px", position:"relative", zIndex:1 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                   <span style={{ fontSize:11, color:t.muted, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em" }}>Quest Points</span>
                   <span style={{ fontSize:18, fontWeight:900, backgroundImage:currentRank.gradient||"#f59e0b", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>{currentPoints} QP</span>
@@ -320,7 +320,7 @@ export default function DashboardPage() {
             </div>
 
             {/* ── STAT CARDS ── */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:16, marginBottom:28, animation:"slideInUp 0.5s ease 0.1s both" }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" style={{ gap:16, marginBottom:28, animation:"slideInUp 0.5s ease 0.1s both" }}>
               {statCards.map((card,i)=>(
                 <div key={card.label} className="stat-hover"
                   onClick={card.isRank ? () => setIsRankModalOpen(true) : card.isXp ? () => setShowNextLevelXp(!showNextLevelXp) : undefined}
@@ -349,7 +349,7 @@ export default function DashboardPage() {
             </div>
 
             {/* ── MAIN GRID ── */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 340px", gap:20, animation:"slideInUp 0.5s ease 0.2s both" }}>
+            <div className="flex flex-col lg:grid lg:grid-cols-[1fr_340px]" style={{ gap:20, animation:"slideInUp 0.5s ease 0.2s both" }}>
 
               {/* LEFT */}
               <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
@@ -420,7 +420,7 @@ export default function DashboardPage() {
                     </div>
                     <Link href="/games" style={{ marginLeft:"auto", padding:"6px 14px", borderRadius:10, fontSize:12, fontWeight:700, background:isLight?"rgba(109,59,232,0.08)":"rgba(139,92,246,0.12)", border:isLight?"1px solid rgba(109,59,232,0.22)":"1px solid rgba(139,92,246,0.3)", color:t.accent, textDecoration:"none" }}>See All →</Link>
                   </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:14 }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap:14 }}>
                     {featuredGames.map((game,i)=>{
                       const colors=["#8b5cf6","#3dd9ff","#10b981","#f59e0b"];
                       const c=colors[i%4];

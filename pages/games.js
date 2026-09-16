@@ -108,20 +108,20 @@ export default function GamesPage() {
         </div>
       </header>
 
-      <div className="stats-grid">
-        <div className="stat-card">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ marginBottom: 24 }}>
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Total games</span>
           <strong>{mergedGames.length}</strong>
         </div>
-        <div className="stat-card">
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Live quests</span>
           <strong>{mergedGames.filter((game) => game.status === "Live").length}</strong>
         </div>
-        <div className="stat-card">
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Avg. progress</span>
           <strong>{mergedGames.length > 0 ? Math.round(mergedGames.reduce((sum, game) => sum + game.progress, 0) / mergedGames.length) : 0}%</strong>
         </div>
-        <div className="stat-card">
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Player rank</span>
           <strong style={{ backgroundImage: currentRank.gradient, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent', display: 'inline-block' }}>
             {currentRank.name}

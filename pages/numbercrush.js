@@ -159,7 +159,7 @@ export default function NumberCrushPage() {
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 20,
+          gap: "clamp(8px, 3vw, 20px)",
           maxWidth: 800,
           margin: "0 auto",
         }}>
@@ -173,8 +173,8 @@ export default function NumberCrushPage() {
                 onClick={() => handleClick(num)}
                 disabled={isCleared || status !== "playing"}
                 style={{
-                  height: 140,
-                  borderRadius: 24,
+                  aspectRatio: "1",
+                  borderRadius: "clamp(12px, 3vw, 24px)",
                   border: isWrong ? "2px solid #ef4444" : "1px solid rgba(255,255,255,0.1)",
                   background: isCleared
                     ? "rgba(52, 211, 153, 0.12)"

@@ -216,22 +216,22 @@ export default function FlappyPage() {
         </button>
       </div>
 
-      <div className="stats-grid" style={{ marginBottom: 20 }}>
-        <div className="stat-card">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ marginBottom: 20 }}>
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Score</span>
           <strong>{score}</strong>
         </div>
-        <div className="stat-card">
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Best</span>
           <strong>{bestScore}</strong>
         </div>
-        <div className="stat-card">
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">State</span>
           <strong>{gameState === "playing" ? "Live" : gameState === "over" ? "Game over" : "Ready"}</strong>
         </div>
-        <div className="stat-card">
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Controls</span>
-          <strong>Space</strong>
+          <strong>Tap / Space</strong>
         </div>
       </div>
 
@@ -248,14 +248,15 @@ export default function FlappyPage() {
           style={{
             position: "relative",
             width: "100%",
+            aspectRatio: "800 / 600",
             maxWidth: GAME_WIDTH,
-            height: GAME_HEIGHT,
             overflow: "hidden",
             borderRadius: 24,
             background: "linear-gradient(180deg, #121a36 0%, #1d2f6f 35%, #14213d 100%)",
             border: "1px solid rgba(255,255,255,0.15)",
             boxShadow: "0 24px 70px rgba(76, 93, 208, 0.35)",
             cursor: "pointer",
+            touchAction: "manipulation",
           }}
         >
           <div
@@ -273,10 +274,10 @@ export default function FlappyPage() {
               <div
                 style={{
                   position: "absolute",
-                  left: pipe.x,
+                  left: `${(pipe.x / GAME_WIDTH) * 100}%`,
                   top: 0,
-                  width: pipe.width,
-                  height: pipe.gapTop,
+                  width: `${(pipe.width / GAME_WIDTH) * 100}%`,
+                  height: `${(pipe.gapTop / GAME_HEIGHT) * 100}%`,
                   background: "linear-gradient(180deg, #7ef7d3 0%, #1ae1a2 100%)",
                   border: "3px solid rgba(18, 57, 44, 0.7)",
                   borderLeftWidth: 4,
@@ -288,10 +289,10 @@ export default function FlappyPage() {
               <div
                 style={{
                   position: "absolute",
-                  left: pipe.x,
-                  top: pipe.gapTop + pipe.gapHeight,
-                  width: pipe.width,
-                  height: GAME_HEIGHT - FLOOR_HEIGHT - (pipe.gapTop + pipe.gapHeight),
+                  left: `${(pipe.x / GAME_WIDTH) * 100}%`,
+                  top: `${((pipe.gapTop + pipe.gapHeight) / GAME_HEIGHT) * 100}%`,
+                  width: `${(pipe.width / GAME_WIDTH) * 100}%`,
+                  height: `${((GAME_HEIGHT - FLOOR_HEIGHT - (pipe.gapTop + pipe.gapHeight)) / GAME_HEIGHT) * 100}%`,
                   background: "linear-gradient(180deg, #7ef7d3 0%, #1ae1a2 100%)",
                   border: "3px solid rgba(18, 57, 44, 0.7)",
                   borderLeftWidth: 4,
@@ -308,8 +309,8 @@ export default function FlappyPage() {
               position: "absolute",
               left: 0,
               right: 0,
-              bottom: FLOOR_HEIGHT,
-              height: 12,
+              bottom: `${(FLOOR_HEIGHT / GAME_HEIGHT) * 100}%`,
+              height: `${(12 / GAME_HEIGHT) * 100}%`,
               background: "linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.12), rgba(255,255,255,0.28))",
             }}
           />
@@ -320,7 +321,7 @@ export default function FlappyPage() {
               left: 0,
               right: 0,
               bottom: 0,
-              height: FLOOR_HEIGHT,
+              height: `${(FLOOR_HEIGHT / GAME_HEIGHT) * 100}%`,
               background: "linear-gradient(180deg, rgba(12, 17, 30, 0.1), rgba(11, 15, 30, 0.85))",
               borderTop: "1px solid rgba(255,255,255,0.08)",
             }}
@@ -329,10 +330,10 @@ export default function FlappyPage() {
           <div
             style={{
               position: "absolute",
-              left: 100,
-              top: birdY,
-              width: 32,
-              height: 32,
+              left: `${(100 / GAME_WIDTH) * 100}%`,
+              top: `${(birdY / GAME_HEIGHT) * 100}%`,
+              width: `${(32 / GAME_WIDTH) * 100}%`,
+              height: `${(32 / GAME_HEIGHT) * 100}%`,
               borderRadius: "50% 50% 48% 48%",
               background: "linear-gradient(135deg, #ffd166 0%, #ff7b54 100%)",
               boxShadow: "0 0 20px rgba(255, 123, 84, 0.6)",

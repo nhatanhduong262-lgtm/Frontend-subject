@@ -70,7 +70,7 @@ export default function LoginPage() {
     background: isAdminMode
       ? "radial-gradient(circle at top, rgba(45, 212, 191, 0.18), transparent 30%), linear-gradient(135deg, #031914 0%, #0a1d1c 45%, #08161c 100%)"
       : "radial-gradient(circle at top, rgba(96, 165, 250, 0.14), transparent 32%), radial-gradient(circle at bottom right, rgba(168,85,247,0.12), transparent 24%), linear-gradient(135deg, #020817 0%, #0b1120 48%, #111827 100%)",
-    padding: "32px 20px",
+    padding: "clamp(16px, 5vw, 32px) clamp(16px, 5vw, 20px)",
     fontFamily: "Inter, Arial, sans-serif",
     position: "relative",
     overflow: "hidden",
@@ -85,7 +85,7 @@ export default function LoginPage() {
     boxShadow: isAdminMode
       ? "0 24px 70px rgba(16, 185, 129, 0.18), 0 0 0 1px rgba(45, 212, 191, 0.12)"
       : "0 24px 70px rgba(125, 211, 252, 0.10), 0 0 0 1px rgba(167, 139, 250, 0.12)",
-    padding: "32px",
+    padding: "clamp(20px, 5vw, 32px)",
     backdropFilter: "blur(18px)",
     position: "relative",
     zIndex: 1,

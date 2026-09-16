@@ -169,16 +169,16 @@ export default function PongPage() {
         </div>
       </header>
 
-      <div className="stats-grid" style={{ marginBottom: 20 }}>
-        <div className="stat-card">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ marginBottom: 20 }}>
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Player 1</span>
           <strong>{state.leftScore}</strong>
         </div>
-        <div className="stat-card">
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">{gameMode === "1p" ? "AI (Bot)" : "Player 2"}</span>
           <strong>{state.rightScore}</strong>
         </div>
-        <div className="stat-card">
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Status</span>
           <strong>{state.winner ? `${state.winner === "left" ? "Player 1" : gameMode === "1p" ? "AI" : "Player 2"} wins` : gameMode === "menu" ? "Menu" : "Live"}</strong>
         </div>
@@ -207,8 +207,9 @@ export default function PongPage() {
         <div
           style={{
             position: "relative",
-            width: "min(100%, 800px)",
-            height: BOARD_HEIGHT,
+            width: "100%",
+            aspectRatio: "800 / 600",
+            maxWidth: 800,
             margin: "0 auto",
             borderRadius: 18,
             background: "linear-gradient(180deg, rgba(12,18,34,0.95), rgba(16,26,42,0.92))",
@@ -217,11 +218,11 @@ export default function PongPage() {
           }}
         >
           {gameMode === "menu" ? (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)" }}>
-              <h2 style={{ fontSize: "2rem", marginBottom: 24, color: "#fff" }}>Select Game Mode</h2>
-              <div style={{ display: "flex", gap: 16 }}>
-                <button type="button" className="primary-button" style={{ fontSize: "1.2rem", padding: "12px 24px" }} onClick={() => resetGame("1p")}>Play vs AI</button>
-                <button type="button" className="ghost-button" style={{ fontSize: "1.2rem", padding: "12px 24px", border: '1px solid var(--border-color)' }} onClick={() => resetGame("2p")}>2 Players (Local)</button>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", padding: 20, textAlign: "center" }}>
+              <h2 style={{ fontSize: "clamp(1.5rem, 4vw, 2rem)", marginBottom: 24, color: "#fff" }}>Select Game Mode</h2>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
+                <button type="button" className="primary-button" style={{ fontSize: "1.1rem", padding: "12px 24px" }} onClick={() => resetGame("1p")}>Play vs AI</button>
+                <button type="button" className="ghost-button" style={{ fontSize: "1.1rem", padding: "12px 24px", border: '1px solid var(--border-color)' }} onClick={() => resetGame("2p")}>2 Players (Local)</button>
               </div>
             </div>
           ) : (
@@ -231,10 +232,10 @@ export default function PongPage() {
               <div
                 style={{
                   position: "absolute",
-                  left: 20,
-                  top: state.leftY,
-                  width: 16,
-                  height: PADDLE_HEIGHT,
+                  left: "2.5%",
+                  top: `${(state.leftY / 600) * 100}%`,
+                  width: "2%",
+                  height: "20%",
                   borderRadius: 12,
                   background: "linear-gradient(180deg, #7ef7d3, #3dd9ff)",
                   boxShadow: "0 0 18px rgba(61, 217, 255, 0.6)",
@@ -244,10 +245,10 @@ export default function PongPage() {
               <div
                 style={{
                   position: "absolute",
-                  right: 20,
-                  top: state.rightY,
-                  width: 16,
-                  height: PADDLE_HEIGHT,
+                  right: "2.5%",
+                  top: `${(state.rightY / 600) * 100}%`,
+                  width: "2%",
+                  height: "20%",
                   borderRadius: 12,
                   background: gameMode === "1p" ? "linear-gradient(180deg, #ff4d4d, #c62828)" : "linear-gradient(180deg, #ff8ecf, #ff7a59)",
                   boxShadow: gameMode === "1p" ? "0 0 18px rgba(255, 77, 77, 0.6)" : "0 0 18px rgba(255, 122, 89, 0.6)",
@@ -257,10 +258,10 @@ export default function PongPage() {
               <div
                 style={{
                   position: "absolute",
-                  left: state.ballX,
-                  top: state.ballY,
-                  width: 18,
-                  height: 18,
+                  left: `${(state.ballX / 800) * 100}%`,
+                  top: `${(state.ballY / 600) * 100}%`,
+                  width: "2.25%",
+                  height: "3%",
                   borderRadius: "50%",
                   background: "linear-gradient(135deg, #f9f871, #ff9f43)",
                   boxShadow: "0 0 18px rgba(249, 248, 113, 0.8)",
@@ -269,6 +270,29 @@ export default function PongPage() {
             </>
           )}
         </div>
+
+        {/* Mobile Controls */}
+        {gameMode !== "menu" && (
+          <div className="md:hidden flex justify-between mt-6 px-2">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-bold text-[var(--muted)] text-center uppercase tracking-wider mb-1">Player 1</span>
+              <div className="flex gap-3">
+                <button className="bg-[rgba(255,255,255,0.08)] border border-[var(--border)] active:bg-[rgba(61,217,255,0.2)] text-2xl rounded-xl p-4 shadow-lg w-16 h-16 flex items-center justify-center select-none touch-manipulation" onTouchStart={() => setControls(c => ({...c, leftUp: true}))} onTouchEnd={() => setControls(c => ({...c, leftUp: false}))}>↑</button>
+                <button className="bg-[rgba(255,255,255,0.08)] border border-[var(--border)] active:bg-[rgba(61,217,255,0.2)] text-2xl rounded-xl p-4 shadow-lg w-16 h-16 flex items-center justify-center select-none touch-manipulation" onTouchStart={() => setControls(c => ({...c, leftDown: true}))} onTouchEnd={() => setControls(c => ({...c, leftDown: false}))}>↓</button>
+              </div>
+            </div>
+            
+            {gameMode === "2p" && (
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-bold text-[var(--muted)] text-center uppercase tracking-wider mb-1">Player 2</span>
+                <div className="flex gap-3">
+                  <button className="bg-[rgba(255,255,255,0.08)] border border-[var(--border)] active:bg-[rgba(255,122,89,0.2)] text-2xl rounded-xl p-4 shadow-lg w-16 h-16 flex items-center justify-center select-none touch-manipulation" onTouchStart={() => setControls(c => ({...c, rightUp: true}))} onTouchEnd={() => setControls(c => ({...c, rightUp: false}))}>↑</button>
+                  <button className="bg-[rgba(255,255,255,0.08)] border border-[var(--border)] active:bg-[rgba(255,122,89,0.2)] text-2xl rounded-xl p-4 shadow-lg w-16 h-16 flex items-center justify-center select-none touch-manipulation" onTouchStart={() => setControls(c => ({...c, rightDown: true}))} onTouchEnd={() => setControls(c => ({...c, rightDown: false}))}>↓</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </section>
       
       <Leaderboard gameName="Pong Arena" />

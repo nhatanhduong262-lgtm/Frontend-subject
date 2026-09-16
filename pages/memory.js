@@ -196,8 +196,8 @@ export default function MemoryPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(120px, 1fr))",
-            gap: 20,
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "clamp(8px, 3vw, 20px)",
             maxWidth: 800,
             margin: "0 auto",
           }}
@@ -218,7 +218,7 @@ export default function MemoryPage() {
                     ? "linear-gradient(135deg, rgba(61, 217, 255, 0.2), rgba(139, 92, 246, 0.32))"
                     : "linear-gradient(135deg, rgba(15, 24, 42, 0.96), rgba(25, 38, 74, 0.9))",
                   color: isFaceUp ? "#f8fbff" : "rgba(255,255,255,0.6)",
-                  fontSize: "clamp(3rem, 6vw, 4rem)",
+                  fontSize: "clamp(2rem, 8vw, 4rem)",
                   fontWeight: 700,
                   boxShadow: isFaceUp ? "0 18px 32px rgba(61, 217, 255, 0.18)" : "inset 0 0 0 1px rgba(255,255,255,0.04)",
                   cursor: isLocked && !card.matched ? "default" : "pointer",

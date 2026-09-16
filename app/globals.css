@@ -58,6 +58,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(139, 92, 246, 0.28), transparent 30%),
     radial-gradient(circle at bottom right, rgba(61, 217, 255, 0.2), transparent 25%),
@@ -193,7 +194,7 @@ button {
 .auth-card,
 .dashboard-shell,
 .panel-card,
-.stats-grid .stat-card,
+.stat-card,
 .game-list-item {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -886,25 +887,7 @@ html[data-theme="light"] .form-field input {
   .dashboard-content aside {
     order: -1;
   }
-}
-
-@media (max-width: 640px) {
-  .landing-page {
-    padding: 20px 16px;
-  }
-  .hero-copy h1, .auth-header h1, .dashboard-header h1 {
-    font-size: 2.2rem;
-  }
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  .stat-row, .portal-grid, .feature-panel, .mini-feature-grid {
-    grid-template-columns: 1fr;
-  }
-  .dashboard-shell {
-    padding: 16px;
-    margin: 16px auto;
-  }
+  
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
@@ -913,6 +896,52 @@ html[data-theme="light"] .form-field input {
   .dashboard-actions {
     width: 100%;
     justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .dashboard-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .ghost-button, .primary-button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-page {
+    padding: 20px 16px;
+  }
+  .landing-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .landing-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .landing-nav a, .theme-toggle {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    min-height: 40px;
+  }
+  .hero-copy h1, .auth-header h1, .dashboard-header h1 {
+    font-size: 2.2rem;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .stat-row, .portal-grid, .feature-panel, .mini-feature-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-shell {
+    padding: 16px;
+    margin: 16px auto;
   }
   .ghost-button, .primary-button {
     padding: 0 16px;

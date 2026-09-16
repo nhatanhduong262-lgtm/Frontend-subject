@@ -306,7 +306,7 @@ export default function ProfilePage() {
               <h3 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 900, color: t.text }}>Choose Your Avatar</h3>
               <p style={{ margin: 0, color: t.muted, fontSize: 14 }}>Pick a character to represent you in-game</p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 24 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 14, marginBottom: 24 }}>
               {AVATAR_PRESETS.map((preset, i) => (
                 <div key={i} onClick={() => { setAvatarUrl(preset.url); setShowAvatarSelector(false); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer" }}>
                   <div style={{ width: 72, height: 72, borderRadius: "50%", background: `url(${preset.url}) center/cover`, border: avatarUrl === preset.url ? `3px solid ${t.cyan}` : `3px solid ${isLight ? "rgba(90,60,30,0.1)" : "rgba(255,255,255,0.06)"}`, transition: "all 0.2s", boxShadow: avatarUrl === preset.url ? `0 0 16px ${isLight ? "rgba(3,105,161,0.3)" : "rgba(61,217,255,0.5)"}` : "none" }}

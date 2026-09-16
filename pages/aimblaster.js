@@ -148,7 +148,7 @@ export default function AimBlasterPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div>
             <h2 style={{ margin: 0 }}>
-              {status === "idle" ? "Click targets as fast as you can!" : status === "over" ? `Game Over! Score: ${score}` : "Hit the targets!"}
+              {status === "idle" ? "Click or tap targets as fast as you can!" : status === "over" ? `Game Over! Score: ${score}` : "Hit the targets!"}
             </h2>
             <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>
               {status === "idle" ? "You have 20 seconds. Don't miss!" : status === "over" ? `Accuracy: ${accuracy}% • Misses: ${misses}` : `Misses: ${misses}`}
@@ -193,6 +193,7 @@ export default function AimBlasterPage() {
           {status === "playing" && target && (
             <button
               onClick={handleHit}
+              onTouchStart={(e) => { e.preventDefault(); handleHit(); }}
               style={{
                 position: "absolute",
                 left: target.x - TARGET_SIZE / 2,

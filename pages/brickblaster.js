@@ -517,20 +517,20 @@ export default function BrickBlasterPage() {
         </div>
       </header>
 
-      <div className="stats-grid" style={{ marginBottom: 20 }}>
-        <div className="stat-card" style={{ background: "linear-gradient(180deg,rgba(61,217,255,0.15),transparent)", borderColor: "rgba(61,217,255,0.3)" }}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ marginBottom: 20 }}>
+        <div className="stat-card p-3 sm:p-5" style={{ background: "linear-gradient(180deg,rgba(61,217,255,0.15),transparent)", borderColor: "rgba(61,217,255,0.3)" }}>
           <span className="label">Score</span>
           <strong style={{ color: "#3dd9ff" }}>{displayScore}</strong>
         </div>
-        <div className="stat-card" style={{ background: "linear-gradient(180deg,rgba(245,158,11,0.15),transparent)", borderColor: "rgba(245,158,11,0.3)" }}>
+        <div className="stat-card p-3 sm:p-5" style={{ background: "linear-gradient(180deg,rgba(245,158,11,0.15),transparent)", borderColor: "rgba(245,158,11,0.3)" }}>
           <span className="label">Best</span>
           <strong style={{ color: "#f59e0b" }}>{bestScore}</strong>
         </div>
-        <div className="stat-card">
+        <div className="stat-card p-3 sm:p-5">
           <span className="label">Level</span>
           <strong style={{ color: "#8b5cf6" }}>{displayLevel}</strong>
         </div>
-        <div className="stat-card" style={{ background: "linear-gradient(180deg,rgba(239,68,68,0.1),transparent)", borderColor: "rgba(239,68,68,0.25)" }}>
+        <div className="stat-card p-3 sm:p-5" style={{ background: "linear-gradient(180deg,rgba(239,68,68,0.1),transparent)", borderColor: "rgba(239,68,68,0.25)" }}>
           <span className="label">Lives</span>
           <strong style={{ color: "#ef4444" }}>{"❤️".repeat(displayLives) || "💀"}</strong>
         </div>
@@ -553,8 +553,8 @@ export default function BrickBlasterPage() {
             />
           </div>
           <div style={{ marginTop: 12, textAlign: "center", color: "var(--muted)", fontSize: 13, fontWeight: 600 }}>
-            🖱️ Mouse / <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 7px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.2)" }}>◀ ▶</kbd> keys to move paddle •
-            <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 7px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.2)", marginLeft: 6 }}>SPACE</kbd> to launch
+            🖱️ Mouse / Touch / <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 7px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.2)" }}>◀ ▶</kbd> to move •
+            <kbd style={{ background: "rgba(255,255,255,0.1)", padding: "2px 7px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.2)", marginLeft: 6 }}>SPACE</kbd> / Tap to launch
           </div>
         </div>
       </div>

@@ -270,10 +270,9 @@ export default function MessagesPage() {
           </div>
         </header>
 
-        <div style={{ display: "flex", gap: 20, height: "calc(100vh - 140px)", minHeight: 520, maxWidth: 1200, margin: "0 auto" }}>
-
+        <div className="flex gap-5 h-[calc(100vh-140px)] min-h-[520px] max-w-[1200px] mx-auto">
           {/* ═══ SIDEBAR ══════════════════════════════════════════════ */}
-          <div className="panel-card" style={{ width: 340, display: "flex", flexDirection: "column", padding: 0, overflow: "hidden", border: "1px solid var(--border)" }}>
+          <div className={`panel-card w-full md:w-[340px] flex-col p-0 overflow-hidden border border-[var(--border)] ${selectedFriend ? 'hidden md:flex' : 'flex'}`}>
 
             {/* Sidebar tab bar */}
             <div style={{ display: "flex", padding: "10px 10px 0", gap: 4, background: "rgba(255,255,255,0.02)", borderBottom: "1px solid var(--border)" }}>
@@ -493,7 +492,7 @@ export default function MessagesPage() {
           </div>
 
           {/* ═══ CHAT AREA ════════════════════════════════════════════ */}
-          <div className="panel-card" style={{ flex: 1, display: "flex", flexDirection: "column", padding: 0, overflow: "hidden", border: "1px solid var(--border)" }}>
+          <div className={`panel-card flex-1 flex-col p-0 overflow-hidden border border-[var(--border)] ${selectedFriend ? 'flex' : 'hidden md:flex'}`}>
             {!selectedFriend ? (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--muted)", gap: 12 }}>
                 <div style={{ fontSize: 56 }}>💬</div>
@@ -504,6 +503,7 @@ export default function MessagesPage() {
               <>
                 {/* Chat Header */}
                 <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", background: "rgba(255,255,255,0.02)", display: "flex", alignItems: "center", gap: 12 }}>
+                  <button className="md:hidden" onClick={() => setSelectedFriend(null)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 10px", color: "#fff", cursor: "pointer", fontSize: 13, marginRight: 4 }}>←</button>
                   <AvatarCircle user={selectedFriend} size={44} />
                   <div style={{ flex: 1 }}>
                     <strong style={{ fontSize: 16, display: "block" }}>{selectedFriend.name}</strong>

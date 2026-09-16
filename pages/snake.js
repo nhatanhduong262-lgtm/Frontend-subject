@@ -184,6 +184,24 @@ export default function SnakePage() {
     return () => window.removeEventListener("keydown", handler);
   }, [status]);
 
+  const handleMobileControl = (dirStr) => {
+    const keyMap = {
+      'up': { x: 0, y: -1 },
+      'down': { x: 0, y: 1 },
+      'left': { x: -1, y: 0 },
+      'right': { x: 1, y: 0 },
+    };
+    const next = keyMap[dirStr];
+    if (!next) return;
+
+    if (status === "ready") setStatus("playing");
+    setQueuedDirection((current) => {
+      const isOpposite = current.x + next.x === 0 && current.y + next.y === 0;
+      if (isOpposite) return current;
+      return next;
+    });
+  };
+
   return (
     <main className="dashboard-shell" style={{ minHeight: "100vh" }}>
       <header className="dashboard-header" style={{ marginBottom: 26 }}>
@@ -289,6 +307,24 @@ export default function SnakePage() {
               />
             );
           })}
+        </div>
+        
+        {/* Mobile D-Pad */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginTop: 20 }} className="md:hidden">
+          <button type="button" onTouchStart={(e) => { e.preventDefault(); handleMobileControl('up'); }} onMouseDown={(e) => { e.preventDefault(); handleMobileControl('up'); }} style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            ▲
+          </button>
+          <div style={{ display: "flex", gap: 60 }}>
+            <button type="button" onTouchStart={(e) => { e.preventDefault(); handleMobileControl('left'); }} onMouseDown={(e) => { e.preventDefault(); handleMobileControl('left'); }} style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              ◀
+            </button>
+            <button type="button" onTouchStart={(e) => { e.preventDefault(); handleMobileControl('right'); }} onMouseDown={(e) => { e.preventDefault(); handleMobileControl('right'); }} style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              ▶
+            </button>
+          </div>
+          <button type="button" onTouchStart={(e) => { e.preventDefault(); handleMobileControl('down'); }} onMouseDown={(e) => { e.preventDefault(); handleMobileControl('down'); }} style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            ▼
+          </button>
         </div>
       </section>
       

@@ -12,6 +12,7 @@ export default function ProgressPage() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [questState, setQuestState] = useState(null);
+  const [games, setGames] = useState([]);
 
   useEffect(() => {
     setQuestState(getQuestState());
@@ -24,6 +25,13 @@ export default function ProgressPage() {
   useEffect(() => {
     if (!window.localStorage.getItem("userId")) {
       router.replace("/login");
+    } else {
+      fetch("/api/games")
+        .then(res => res.json())
+        .then(data => {
+          if (data.games) setGames(data.games);
+        })
+        .catch(console.error);
     }
   }, [router]);
 
@@ -179,24 +187,31 @@ export default function ProgressPage() {
              </div>
           ) : (
             <div className="game-list">
-              {playerProgress.map((game) => {
-                const status = game.playtime > 0 ? "Played" : "Not played yet";
+              {playerProgress.map((prog) => {
+                const status = prog.playtime > 0 ? "Played" : "Not played yet";
+                const gameMeta = games.find(g => g.title === prog.title) || prog;
+                const isUnavailable = gameMeta.status === 'Maintenance' || gameMeta.status === 'Coming Soon';
+                
                 return (
-                  <Link href={game.href || "/dashboard"} key={game.title} className="game-list-item" style={{ display: 'flex', gap: 16 }}>
-                    {game.image && (
+                  <Link href={isUnavailable ? "#" : (prog.href || "/dashboard")} key={prog.title} className="game-list-item" style={{ display: 'flex', gap: 16, cursor: isUnavailable ? 'not-allowed' : 'pointer', opacity: isUnavailable ? 0.7 : 1 }} onClick={(e) => isUnavailable && e.preventDefault()}>
+                    {prog.image && (
                       <div style={{ width: 64, height: 64, borderRadius: 12, overflow: 'hidden', flexShrink: 0, border: '1px solid var(--border)' }}>
-                        <img src={game.image} alt={game.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={prog.image} alt={prog.title} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isUnavailable ? 'grayscale(100%) opacity(50%)' : 'none' }} />
                       </div>
                     )}
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <strong style={{ margin: 0, fontSize: '1.1rem' }}>{game.title}</strong>
+                      <strong style={{ margin: 0, fontSize: '1.1rem' }}>{prog.title}</strong>
                       <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>{status}</div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                       <span className="progress-badge" style={{ minWidth: 60, textAlign: "center" }}>
-                        {formatPlaytime(game.playtime)}
+                        {formatPlaytime(prog.playtime)}
                       </span>
-                      <span className="primary-button" style={{ minHeight: 36, padding: '0 16px', fontSize: '0.85rem' }}>Play now</span>
+                      {isUnavailable ? (
+                        <span className="ghost-button" style={{ minHeight: 36, padding: '0 16px', fontSize: '0.85rem', opacity: 0.6, cursor: 'not-allowed' }}>{gameMeta.status}</span>
+                      ) : (
+                        <span className="primary-button" style={{ minHeight: 36, padding: '0 16px', fontSize: '0.85rem' }}>Play now</span>
+                      )}
                     </div>
                   </Link>
                 );
