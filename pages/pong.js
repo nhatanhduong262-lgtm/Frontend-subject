@@ -30,6 +30,9 @@ export default function PongPage() {
 
     const handleKeyDown = (event) => {
       const key = event.key.toLowerCase();
+      if (["w", "s", "arrowup", "arrowdown"].includes(key)) {
+        event.preventDefault();
+      }
       if (key === "w") setControls((current) => ({ ...current, leftUp: true }));
       if (key === "s") setControls((current) => ({ ...current, leftDown: true }));
       if (key === "arrowup") setControls((current) => ({ ...current, rightUp: true }));
