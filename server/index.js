@@ -607,12 +607,24 @@ app.get('/friends', requireAuth(), async (req, res) => {
     const pendingIncoming = [];
     const pendingOutgoing = [];
 
+    // Fetch unread counts
+    const { data: unreadData } = await supabaseClient
+      .from('messages')
+      .select('sender_id')
+      .eq('receiver_id', userId)
+      .is('read_at', null);
+      
+    const unreadCounts = {};
+    (unreadData || []).forEach(msg => {
+      unreadCounts[msg.sender_id] = (unreadCounts[msg.sender_id] || 0) + 1;
+    });
+
     for (const row of (data || [])) {
       const otherId = row.user_id === userId ? row.friend_id : row.user_id;
       const otherUser = usersMap[otherId] || { id: otherId, name: 'Unknown' };
 
       if (row.status === 'accepted') {
-        friends.push({ friendshipId: row.id, user: otherUser });
+        friends.push({ friendshipId: row.id, user: otherUser, unreadCount: unreadCounts[otherId] || 0 });
       } else if (row.status === 'pending') {
         if (row.friend_id === userId) {
           pendingIncoming.push({ friendshipId: row.id, user: otherUser });

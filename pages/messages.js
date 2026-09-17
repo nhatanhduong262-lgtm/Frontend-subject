@@ -81,15 +81,22 @@ export default function MessagesPage() {
   }, [messages]);
 
   // ── Load all friends + requests ────────────────────────
-  const loadFriends = useCallback(async () => {
+  const loadFriends = useCallback(async (isInitial = false) => {
     if (!token) return;
-    setLoadingFriends(true);
+    if (isInitial) setLoadingFriends(true);
     try {
       const res = await fetch("/api/friends", { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         const accepted = (data.friends || []).map(f => ({ ...f.user, friendshipId: f.friendshipId }));
         setFriends(accepted);
+        
+        const newUnreadCounts = {};
+        (data.friends || []).forEach(f => {
+           if (f.unreadCount > 0) newUnreadCounts[f.user.id] = f.unreadCount;
+        });
+        setUnreadCounts(newUnreadCounts);
+        
         setPendingIncoming(data.pendingIncoming || []);
         setPendingOutgoing(data.pendingOutgoing || []);
 
@@ -101,47 +108,42 @@ export default function MessagesPage() {
         }
       }
     } catch (err) { console.error("Failed to load friends", err); }
-    finally { setLoadingFriends(false); }
+    finally { if (isInitial) setLoadingFriends(false); }
   }, [token, router.query]);
 
-  useEffect(() => { if (token) loadFriends(); }, [token]);
+  useEffect(() => { 
+    if (token) loadFriends(true); 
+    const interval = setInterval(() => { if (token) loadFriends(false); }, 3000);
+    return () => clearInterval(interval);
+  }, [token, loadFriends]);
 
   // ── Load messages ──────────────────────────────────────
-  useEffect(() => {
+  const fetchMessages = useCallback(async (isInitial = false) => {
     if (!selectedFriend || !token) return;
-    const fetchMessages = async () => {
-      setLoadingMessages(true);
-      try {
-        const res = await fetch(`/api/messages/${selectedFriend.id}`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) { const data = await res.json(); setMessages(data.messages); }
-        await fetch(`/api/messages/read/${selectedFriend.id}`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-      } catch (err) { console.error("Failed to load messages", err); }
-      finally { setLoadingMessages(false); }
-    };
-    fetchMessages();
+    if (isInitial) setLoadingMessages(true);
+    try {
+      const res = await fetch(`/api/messages/${selectedFriend.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { 
+        const data = await res.json(); 
+        setMessages(prev => {
+          if (prev.length !== data.messages.length) return data.messages;
+          const lastPrev = prev[prev.length - 1];
+          const lastNew = data.messages[data.messages.length - 1];
+          if (lastPrev?.id !== lastNew?.id) return data.messages;
+          return prev;
+        });
+      }
+      await fetch(`/api/messages/read/${selectedFriend.id}`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+    } catch (err) { console.error("Failed to load messages", err); }
+    finally { if (isInitial) setLoadingMessages(false); }
   }, [selectedFriend, token]);
 
-  // ── Realtime ───────────────────────────────────────────
   useEffect(() => {
-    if (!currentUserId) return;
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-    if (!url || !key) return;
-    const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-    const channel = supabase.channel(`messages-${currentUserId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
-        const newMsg = payload.new;
-        const cf = selectedFriendRef.current;
-        if (cf && ((newMsg.sender_id === currentUserId && newMsg.receiver_id === cf.id) || (newMsg.sender_id === cf.id && newMsg.receiver_id === currentUserId))) {
-          setMessages(prev => [...prev, newMsg]);
-          if (newMsg.sender_id === cf.id)
-            fetch(`/api/messages/read/${cf.id}`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-        } else if (newMsg.receiver_id === currentUserId) {
-          setUnreadCounts(prev => ({ ...prev, [newMsg.sender_id]: (prev[newMsg.sender_id] || 0) + 1 }));
-        }
-      }).subscribe();
-    return () => supabase.removeChannel(channel);
-  }, [currentUserId]);
+    if (!selectedFriend || !token) return;
+    fetchMessages(true);
+    const interval = setInterval(() => fetchMessages(false), 3000);
+    return () => clearInterval(interval);
+  }, [selectedFriend, token, fetchMessages]);
 
   // ── Send message ───────────────────────────────────────
   const handleSendMessage = async (e) => {
