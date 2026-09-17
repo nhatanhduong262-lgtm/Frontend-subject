@@ -188,7 +188,7 @@ export default function ProfilePage() {
                 onMouseOver={e => e.currentTarget.style.background = t.itemBgHover}
                 onMouseOut={e => e.currentTarget.style.background = t.itemBg}
               >← Dashboard</Link>
-              <Link href="/messages" style={{ padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: isLight ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.15)", border: isLight ? "1px solid rgba(16,185,129,0.25)" : "1px solid rgba(16,185,129,0.35)", color: isLight ? "#047857" : "#10b981", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>💬 Tin nhắn & Bạn bè</Link>
+              <Link href="/messages" style={{ padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: isLight ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.15)", border: isLight ? "1px solid rgba(16,185,129,0.25)" : "1px solid rgba(16,185,129,0.35)", color: isLight ? "#047857" : "#10b981", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>💬 Messages & Friends</Link>
               <Link href="/games" style={{ padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: isLight ? "linear-gradient(135deg, rgba(109,59,232,0.10), rgba(3,105,161,0.08))" : "linear-gradient(135deg, rgba(139,92,246,0.25), rgba(61,217,255,0.15))", border: isLight ? "1px solid rgba(109,59,232,0.25)" : "1px solid rgba(139,92,246,0.4)", color: t.accent, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>🎮 Games</Link>
             </div>
           </div>
@@ -285,7 +285,7 @@ export default function ProfilePage() {
               {/* Quick Links */}
               <div style={{ marginTop: 28, paddingTop: 24, borderTop: `1px solid ${t.cardBorder}` }}>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <Link href="/messages" style={{ padding: "10px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: isLight ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.15)", border: isLight ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(16,185,129,0.35)", color: isLight ? "#047857" : "#10b981", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>💬 Tin nhắn & Bạn bè</Link>
+                  <Link href="/messages" style={{ padding: "10px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: isLight ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.15)", border: isLight ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(16,185,129,0.35)", color: isLight ? "#047857" : "#10b981", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>💬 Messages & Friends</Link>
                   {isAdmin && (
                     <Link href="/users" style={{ padding: "10px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: isLight ? "rgba(4,120,87,0.1)" : "rgba(15,118,110,0.15)", border: isLight ? "1px solid rgba(4,120,87,0.2)" : "1px solid rgba(15,118,110,0.35)", color: isLight ? "#047857" : "#5eead4", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>🏆 Users Dashboard</Link>
                   )}

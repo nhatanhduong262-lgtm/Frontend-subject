@@ -43,12 +43,12 @@ export default function MessagesPage() {
   const messagesEndRef = useRef(null);
 
   const EMOJI_CATEGORIES = [
-    { label: "😊 Vui",  emojis: ["😀","😂","🥰","😍","😎","🥳","😜","😇","🤩","😋","😄","🤗","😆","😁","🙂","😊"] },
-    { label: "😢 Buồn", emojis: ["😢","😭","😔","😞","🥺","😿","😩","😫","😓","😟","🙁","😧","😦","😥","😰","😨"] },
-    { label: "😡 Tức",  emojis: ["😡","🤬","😤","😠","👿","💢","😣","😖","🤯","😒","🙄","😑","😐","😶","🫤","😮‍💨"] },
-    { label: "❤️ Yêu", emojis: ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💕","💞","💓","💗","💖","💝","💘","🫶"] },
+    { label: "😊 Happy",  emojis: ["😀","😂","🥰","😍","😎","🥳","😜","😇","🤩","😋","😄","🤗","😆","😁","🙂","😊"] },
+    { label: "😢 Sad", emojis: ["😢","😭","😔","😞","🥺","😿","😩","😫","😓","😟","🙁","😧","😦","😥","😰","😨"] },
+    { label: "😡 Angry",  emojis: ["😡","🤬","😤","😠","👿","💢","😣","😖","🤯","😒","🙄","😑","😐","😶","🫤","😮‍💨"] },
+    { label: "❤️ Love", emojis: ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💕","💞","💓","💗","💖","💝","💘","🫶"] },
     { label: "🎮 Game", emojis: ["🎮","🕹️","👾","🏆","🥇","🎯","🎲","🃏","🎰","⚡","🔥","💥","✨","🌟","⭐","🚀"] },
-    { label: "👋 Chào", emojis: ["👋","🤝","👍","👎","👏","🙌","🤜","🤛","✌️","🤞","🫵","💪","🫂","🤙","👌","🫡"] },
+    { label: "👋 Greet", emojis: ["👋","🤝","👍","👎","👏","🙌","🤜","🤛","✌️","🤞","🫵","💪","🫂","🤙","👌","🫡"] },
   ];
 
   // ── Friends panel state ────────────────────────────────
@@ -159,25 +159,25 @@ export default function MessagesPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(`Không thể gửi tin nhắn: ${data.message || "Lỗi hệ thống"}`);
+        alert(`Cannot send message: ${data.message || "System error"}`);
         setNewMessage(content);
       } else {
         setMessages(prev => { if (prev.some(m => m.id === data.message.id)) return prev; return [...prev, data.message]; });
       }
-    } catch { alert("Lỗi kết nối mạng."); setNewMessage(content); }
+    } catch { alert("Network connection error."); setNewMessage(content); }
   };
 
   // ── Friend actions ─────────────────────────────────────
   const handleSearch = async () => {
     const id = searchId.trim();
     if (!id) return;
-    if (Number(id) === currentUserId) { setSearchError("Đó là ID của chính bạn!"); return; }
+    if (Number(id) === currentUserId) { setSearchError("That's your own ID!"); return; }
     setSearching(true); setSearchError(""); setSearchResult(null);
     try {
       const res = await fetch(`/api/users/${id}/public`);
-      if (!res.ok) { setSearchError("Không tìm thấy người chơi với ID này."); }
+      if (!res.ok) { setSearchError("Player with this ID not found."); }
       else setSearchResult(await res.json());
-    } catch { setSearchError("Lỗi kết nối. Thử lại nhé."); }
+    } catch { setSearchError("Connection error. Please try again."); }
     finally { setSearching(false); }
   };
 
@@ -192,8 +192,8 @@ export default function MessagesPage() {
       });
       const data = await res.json();
       if (res.ok) { setSearchResult(null); setSearchId(""); loadFriends(); }
-      else setSearchError(data.message || "Không thể gửi lời mời.");
-    } catch { setSearchError("Lỗi kết nối."); }
+      else setSearchError(data.message || "Cannot send request.");
+    } catch { setSearchError("Connection error."); }
     finally { setSending(false); }
   };
 
@@ -264,7 +264,7 @@ export default function MessagesPage() {
               <span className="brand-dot" style={{ boxShadow: "0 0 18px rgba(168,85,247,0.8)" }} />
               <span>PixelPulse</span>
             </div>
-            <h1 style={{ marginTop: 12 }}>Tin nhắn & Bạn bè</h1>
+            <h1 style={{ marginTop: 12 }}>Messages & Friends</h1>
           </div>
           <div className="dashboard-actions">
             <BackButton label="← Back" />
@@ -279,10 +279,10 @@ export default function MessagesPage() {
             {/* Sidebar tab bar */}
             <div style={{ display: "flex", padding: "10px 10px 0", gap: 4, background: "rgba(255,255,255,0.02)", borderBottom: "1px solid var(--border)" }}>
               <button style={btnStyle(sidebarTab === "chat")} onClick={() => setSidebarTab("chat")}>
-                💬 Tin nhắn
+                💬 Messages
               </button>
               <button style={{ ...btnStyle(sidebarTab === "friends"), position: "relative" }} onClick={() => setSidebarTab("friends")}>
-                👥 Bạn bè
+                👥 Friends
                 {totalPending > 0 && (
                   <span style={{ position: "absolute", top: 4, right: 6, width: 16, height: 16, borderRadius: "50%", background: "#ef4444", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
                     {totalPending}
@@ -295,12 +295,12 @@ export default function MessagesPage() {
             {sidebarTab === "chat" && (
               <div style={{ flex: 1, overflowY: "auto" }}>
                 {loadingFriends ? (
-                  <div style={{ padding: 24, color: "var(--muted)", textAlign: "center" }}>Đang tải...</div>
+                  <div style={{ padding: 24, color: "var(--muted)", textAlign: "center" }}>Loading...</div>
                 ) : friends.length === 0 ? (
                   <div style={{ padding: 28, color: "var(--muted)", textAlign: "center", fontSize: 14 }}>
                     <div style={{ fontSize: 40, marginBottom: 10 }}>🤝</div>
-                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Chưa có bạn bè</div>
-                    <div style={{ opacity: 0.6, fontSize: 12 }}>Chuyển qua tab <strong>Bạn bè</strong> để thêm bạn!</div>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>No friends yet</div>
+                    <div style={{ opacity: 0.6, fontSize: 12 }}>Switch to the <strong>Friends</strong> tab to add them!</div>
                   </div>
                 ) : (
                   friends.map(friend => (
@@ -332,7 +332,7 @@ export default function MessagesPage() {
                           )}
                         </strong>
                         <span style={{ fontSize: 12, color: unreadCounts[friend.id] > 0 ? "#ef4444" : "var(--muted)", fontWeight: unreadCounts[friend.id] > 0 ? 700 : 400 }}>
-                          {unreadCounts[friend.id] > 0 ? `${unreadCounts[friend.id]} tin nhắn mới` : `#${friend.id}`}
+                          {unreadCounts[friend.id] > 0 ? `${unreadCounts[friend.id]} new messages` : `#${friend.id}`}
                         </span>
                       </div>
                     </div>
@@ -349,7 +349,7 @@ export default function MessagesPage() {
                 <div style={{ padding: "10px 14px", borderRadius: 12, marginBottom: 16, background: "linear-gradient(135deg, rgba(79,70,229,0.2), rgba(61,217,255,0.1))", border: "1px solid rgba(79,70,229,0.4)", display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 20 }}>🎮</span>
                   <div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>ID của bạn</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>Your ID</div>
                     <strong style={{ fontSize: 18, fontFamily: "monospace", color: "#a78bfa" }}>#{currentUserId}</strong>
                   </div>
                   <button
@@ -360,12 +360,12 @@ export default function MessagesPage() {
 
                 {/* Search */}
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Tìm bạn theo Player ID</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Find friends by Player ID</div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <input
                       type="text"
                       inputMode="numeric"
-                      placeholder="Nhập ID..."
+                      placeholder="Enter ID..."
                       value={searchId}
                       onChange={e => { setSearchId(e.target.value.replace(/\D/g, "")); setSearchResult(null); setSearchError(""); }}
                       onKeyDown={e => e.key === "Enter" && handleSearch()}
@@ -386,13 +386,13 @@ export default function MessagesPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <AvatarCircle user={searchResult} size={36} />
                       <div>
-                        <div style={{ fontSize: 11, color: "#10b981", fontWeight: 700, marginBottom: 2 }}>Tìm thấy ✓</div>
+                        <div style={{ fontSize: 11, color: "#10b981", fontWeight: 700, marginBottom: 2 }}>Found ✓</div>
                         <strong style={{ fontSize: 14 }}>{searchResult.name}</strong>
                         <span style={{ color: "var(--muted)", fontSize: 12, marginLeft: 6 }}>#{searchResult.id}</span>
                       </div>
                     </div>
                     <button onClick={handleSendRequest} disabled={sending} style={{ background: "linear-gradient(135deg, #10b981, #34d399)", color: "#fff", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                      {sending ? "..." : "➕ Kết bạn"}
+                      {sending ? "..." : "➕ Add Friend"}
                     </button>
                   </div>
                 )}
@@ -407,7 +407,7 @@ export default function MessagesPage() {
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />
-                      Lời mời kết bạn ({pendingIncoming.length})
+                      Friend Requests ({pendingIncoming.length})
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {pendingIncoming.map(item => (
@@ -432,7 +432,7 @@ export default function MessagesPage() {
                 {/* Pending Outgoing */}
                 {pendingOutgoing.length > 0 && (
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Đã gửi lời mời</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Sent Requests</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {pendingOutgoing.map(item => (
                         <div key={item.friendshipId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", gap: 8 }}>
@@ -440,10 +440,10 @@ export default function MessagesPage() {
                             <AvatarCircle user={item.user} size={34} />
                             <div style={{ minWidth: 0 }}>
                               <strong style={{ fontSize: 13, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.user.name}</strong>
-                              <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, background: "rgba(245,158,11,0.1)", padding: "1px 6px", borderRadius: 5 }}>Chờ xác nhận</span>
+                              <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, background: "rgba(245,158,11,0.1)", padding: "1px 6px", borderRadius: 5 }}>Pending</span>
                             </div>
                           </div>
-                          <button onClick={() => handleRemove(item.friendshipId)} disabled={friendActionLoading} style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 7, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Hủy</button>
+                          <button onClick={() => handleRemove(item.friendshipId)} disabled={friendActionLoading} style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 7, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>Cancel</button>
                         </div>
                       ))}
                     </div>
@@ -453,15 +453,15 @@ export default function MessagesPage() {
                 {/* Friends list in friends tab */}
                 <div>
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                    Bạn bè
+                    Friends
                     {friends.length > 0 && <span style={{ background: "rgba(16,185,129,0.15)", color: "#10b981", borderRadius: 20, padding: "1px 8px", fontSize: 11 }}>{friends.length}</span>}
                   </div>
                   {loadingFriends ? (
-                    <div style={{ padding: 16, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>Đang tải...</div>
+                    <div style={{ padding: 16, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>Loading...</div>
                   ) : friends.length === 0 ? (
                     <div style={{ padding: "20px 14px", textAlign: "center", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 12, background: "rgba(255,255,255,0.02)" }}>
                       <div style={{ fontSize: 32, marginBottom: 8 }}>🎮</div>
-                      <div style={{ color: "var(--muted)", fontSize: 13 }}>Chưa có bạn bè nào</div>
+                      <div style={{ color: "var(--muted)", fontSize: 13 }}>No friends yet</div>
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -501,8 +501,8 @@ export default function MessagesPage() {
             {!selectedFriend ? (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--muted)", gap: 12 }}>
                 <div style={{ fontSize: 56 }}>💬</div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.6)" }}>Chọn một người bạn để chat</div>
-                <div style={{ fontSize: 13, opacity: 0.5 }}>Hoặc thêm bạn mới ở tab 👥 Bạn bè</div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.6)" }}>Select a friend to chat</div>
+                <div style={{ fontSize: 13, opacity: 0.5 }}>Or add new friends in the 👥 Friends tab</div>
               </div>
             ) : (
               <>
@@ -523,9 +523,9 @@ export default function MessagesPage() {
                 {/* Messages List */}
                 <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
                   {loadingMessages ? (
-                    <div style={{ color: "var(--muted)", textAlign: "center" }}>Đang tải...</div>
+                    <div style={{ color: "var(--muted)", textAlign: "center" }}>Loading...</div>
                   ) : messages.length === 0 ? (
-                    <div style={{ color: "var(--muted)", textAlign: "center", margin: "auto" }}>Chưa có tin nhắn. Nói xin chào đi! 👋</div>
+                    <div style={{ color: "var(--muted)", textAlign: "center", margin: "auto" }}>No messages yet. Say hello! 👋</div>
                   ) : (
                     messages.map(msg => {
                       const isMe = msg.sender_id === currentUserId;
@@ -572,11 +572,11 @@ export default function MessagesPage() {
 
                 {/* Input bar */}
                 <form onSubmit={handleSendMessage} style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", background: "var(--bg-card)", display: "flex", gap: 10, alignItems: "center" }}>
-                  <button type="button" onClick={() => setShowEmojiPicker(p => !p)} title="Biểu cảm" style={{ width: 42, height: 42, borderRadius: "50%", flexShrink: 0, background: showEmojiPicker ? "linear-gradient(135deg, #8b5cf6, #3dd9ff)" : "rgba(255,255,255,0.07)", border: showEmojiPicker ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.12)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", boxShadow: showEmojiPicker ? "0 0 16px rgba(139,92,246,0.4)" : "none" }}>
+                  <button type="button" onClick={() => setShowEmojiPicker(p => !p)} title="Emoji" style={{ width: 42, height: 42, borderRadius: "50%", flexShrink: 0, background: showEmojiPicker ? "linear-gradient(135deg, #8b5cf6, #3dd9ff)" : "rgba(255,255,255,0.07)", border: showEmojiPicker ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.12)", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", boxShadow: showEmojiPicker ? "0 0 16px rgba(139,92,246,0.4)" : "none" }}>
                     😊
                   </button>
-                  <input ref={inputRef} type="text" placeholder="Nhập tin nhắn..." value={newMessage} onChange={e => setNewMessage(e.target.value)} className="form-input" style={{ flex: 1, borderRadius: 24, padding: "12px 20px" }} />
-                  <button type="submit" disabled={!newMessage.trim()} className="primary-button" style={{ borderRadius: 24, padding: "0 24px", height: 44 }}>Gửi</button>
+                  <input ref={inputRef} type="text" placeholder="Type a message..." value={newMessage} onChange={e => setNewMessage(e.target.value)} className="form-input" style={{ flex: 1, borderRadius: 24, padding: "12px 20px" }} />
+                  <button type="submit" disabled={!newMessage.trim()} className="primary-button" style={{ borderRadius: 24, padding: "0 24px", height: 44 }}>Send</button>
                 </form>
               </>
             )}
