@@ -325,8 +325,11 @@ export default function MessagesPage() {
                         )}
                       </div>
                       <div style={{ flex: 1, overflow: "hidden" }}>
-                        <strong style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: unreadCounts[friend.id] > 0 ? "#fff" : "inherit", fontSize: 14 }}>
-                          {friend.name}
+                        <strong style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: unreadCounts[friend.id] > 0 ? "#fff" : "inherit", fontSize: 14 }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{friend.name}</span>
+                          {friend.role === 'admin' && (
+                            <span style={{ background: "#ef4444", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 800 }}>ADMIN</span>
+                          )}
                         </strong>
                         <span style={{ fontSize: 12, color: unreadCounts[friend.id] > 0 ? "#ef4444" : "var(--muted)", fontWeight: unreadCounts[friend.id] > 0 ? 700 : 400 }}>
                           {unreadCounts[friend.id] > 0 ? `${unreadCounts[friend.id]} tin nhắn mới` : `#${friend.id}`}
@@ -468,12 +471,12 @@ export default function MessagesPage() {
                           onMouseOut={e => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                            <div style={{ position: "relative" }}>
-                              <AvatarCircle user={item} size={36} />
-                              <div style={{ position: "absolute", bottom: 0, right: 0, width: 10, height: 10, borderRadius: "50%", background: "#10b981", border: "2px solid var(--bg-card)" }} />
-                            </div>
+                            <AvatarCircle user={item} size={36} />
                             <div style={{ minWidth: 0 }}>
-                              <strong style={{ fontSize: 13, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</strong>
+                              <strong style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {item.name}
+                                {item.role === 'admin' && <span style={{ background: "#ef4444", color: "#fff", fontSize: 9, padding: "1px 5px", borderRadius: 4, fontWeight: 800 }}>ADMIN</span>}
+                              </strong>
                               <span style={{ color: "var(--muted)", fontSize: 11 }}>#{item.id}</span>
                             </div>
                           </div>
@@ -508,7 +511,10 @@ export default function MessagesPage() {
                   <button className="md:hidden" onClick={() => setSelectedFriend(null)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 10px", color: "#fff", cursor: "pointer", fontSize: 13, marginRight: 4 }}>←</button>
                   <AvatarCircle user={selectedFriend} size={44} />
                   <div style={{ flex: 1 }}>
-                    <strong style={{ fontSize: 16, display: "block" }}>{selectedFriend.name}</strong>
+                    <strong style={{ fontSize: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                      {selectedFriend.name}
+                      {selectedFriend.role === 'admin' && <span style={{ background: "#ef4444", color: "#fff", fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 800 }}>ADMIN</span>}
+                    </strong>
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>#{selectedFriend.id}</div>
                   </div>
                   <button onClick={() => setSelectedFriend(null)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 12px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 13 }}>✕</button>

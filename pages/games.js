@@ -26,7 +26,7 @@ export default function GamesPage() {
     
     setQuestState(getQuestState());
     
-    fetch("/api/games")
+    fetch(`/api/games?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (data.games) setGames(data.games);

@@ -46,8 +46,8 @@ export default function AdminDashboard() {
     setProfile(savedProfile);
 
     Promise.all([
-      fetch("/api/admin/summary", { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json()),
-      fetch("/api/games").then(res => res.json())
+      fetch(`/api/admin/summary?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json()),
+      fetch(`/api/games?t=${Date.now()}`).then(res => res.json())
     ])
       .then(([summaryData, gamesData]) => {
         if (summaryData.summary) {
@@ -99,7 +99,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         const { game } = await res.json();
         
-        const existingIndex = games.findIndex(g => g.id === game.id);
+        const existingIndex = games.findIndex(g => Number(g.id) === Number(game.id));
         let newGames;
         if (existingIndex >= 0) {
           newGames = [...games];
@@ -233,6 +233,7 @@ export default function AdminDashboard() {
           <Link href="/games" className="ghost-button">Games</Link>
           <Link href="/progress" className="ghost-button">Progress</Link>
           <Link href="/users" className="ghost-button">Users</Link>
+          <Link href="/messages" className="ghost-button">Messages</Link>
           <ThemeToggle />
           <button type="button" className="ghost-button" onClick={handleLogout}>Logout</button>
         </div>

@@ -598,7 +598,7 @@ app.get('/friends', requireAuth(), async (req, res) => {
     if (otherIds.length > 0) {
       const { data: usersData } = await supabaseClient
         .from('users')
-        .select('id, name, avatar_url')
+        .select('id, name, avatar_url, role')
         .in('id', otherIds);
       (usersData || []).forEach(u => { usersMap[u.id] = u; });
     }
@@ -633,6 +633,33 @@ app.get('/friends', requireAuth(), async (req, res) => {
         }
       }
     }
+
+    // --- Global Admin/User Visibility ---
+    const { data: dbUser } = await supabaseClient.from('users').select('role').eq('id', userId).single();
+    const currentRole = dbUser?.role || 'user';
+
+    let extraUsers = [];
+    if (currentRole === 'admin') {
+      const { data: allUsers } = await supabaseClient.from('users').select('id, name, avatar_url, role').neq('id', userId);
+      extraUsers = allUsers || [];
+    } else {
+      const { data: allAdmins } = await supabaseClient.from('users').select('id, name, avatar_url, role').eq('role', 'admin').neq('id', userId);
+      extraUsers = allAdmins || [];
+    }
+
+    const existingFriendIds = new Set(friends.map(f => f.user.id));
+    extraUsers.forEach(eu => {
+      if (!existingFriendIds.has(eu.id)) {
+        friends.push({
+          friendshipId: `global-${eu.id}`,
+          user: { id: eu.id, name: eu.name, avatar_url: eu.avatar_url, role: eu.role },
+          unreadCount: unreadCounts[eu.id] || 0
+        });
+      } else {
+        const friend = friends.find(f => f.user.id === eu.id);
+        if (friend) friend.user.role = eu.role;
+      }
+    });
 
     res.json({ friends, pendingIncoming, pendingOutgoing });
   } catch (error) {
@@ -760,15 +787,20 @@ app.get('/messages/:friendId', requireAuth(), async (req, res) => {
 
     if (!friendId) return res.status(400).json({ message: 'friendId is required.' });
 
-    // Validate friendship exists
-    const { data: friendship, error: friendErr } = await supabaseClient
-      .from('friendships')
-      .select('status')
-      .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`)
-      .eq('status', 'accepted')
-      .maybeSingle();
+    const { data: usersData } = await supabaseClient.from('users').select('id, role').in('id', [userId, friendId]);
+    const isEitherAdmin = (usersData || []).some(u => u.role === 'admin');
 
-    if (friendErr || !friendship) return res.status(403).json({ message: 'Must be friends to message.' });
+    if (!isEitherAdmin) {
+      // Validate friendship exists
+      const { data: friendship, error: friendErr } = await supabaseClient
+        .from('friendships')
+        .select('status')
+        .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`)
+        .eq('status', 'accepted')
+        .maybeSingle();
+
+      if (friendErr || !friendship) return res.status(403).json({ message: 'Must be friends to message.' });
+    }
 
     const { data: messages, error } = await supabaseClient
       .from('messages')
@@ -801,14 +833,19 @@ app.post('/messages', requireAuth(), async (req, res) => {
       return res.status(400).json({ message: 'receiverId and content are required.' });
     }
 
-    const { data: friendship, error: friendErr } = await supabaseClient
-      .from('friendships')
-      .select('status')
-      .or(`and(user_id.eq.${userId},friend_id.eq.${Number(receiverId)}),and(user_id.eq.${Number(receiverId)},friend_id.eq.${userId})`)
-      .eq('status', 'accepted')
-      .maybeSingle();
+    const { data: usersData } = await supabaseClient.from('users').select('id, role').in('id', [userId, Number(receiverId)]);
+    const isEitherAdmin = (usersData || []).some(u => u.role === 'admin');
 
-    if (friendErr || !friendship) return res.status(403).json({ message: 'Must be friends to message.' });
+    if (!isEitherAdmin) {
+      const { data: friendship, error: friendErr } = await supabaseClient
+        .from('friendships')
+        .select('status')
+        .or(`and(user_id.eq.${userId},friend_id.eq.${Number(receiverId)}),and(user_id.eq.${Number(receiverId)},friend_id.eq.${userId})`)
+        .eq('status', 'accepted')
+        .maybeSingle();
+
+      if (friendErr || !friendship) return res.status(403).json({ message: 'Must be friends to message.' });
+    }
 
     const { data: message, error } = await supabaseClient
       .from('messages')
