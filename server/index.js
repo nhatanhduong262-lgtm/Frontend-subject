@@ -384,9 +384,20 @@ app.post('/upload', requireAuth(), upload.single('file'), async (req, res) => {
     validateUploadedFile(file);
 
     const safeName = `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
-    const fullPath = path.join(uploadDir, safeName);
+    
+    const supabaseClient = getSupabaseClient();
+    const { error: uploadError } = await supabaseClient.storage
+      .from('uploads')
+      .upload(safeName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true,
+      });
 
-    await fs.promises.writeFile(fullPath, file.buffer);
+    if (uploadError) {
+      throw new Error(`Supabase upload failed: ${uploadError.message}`);
+    }
+
+    const { data: publicUrlData } = supabaseClient.storage.from('uploads').getPublicUrl(safeName);
 
     return res.status(201).json({
       message: 'File uploaded successfully.',
@@ -394,7 +405,7 @@ app.post('/upload', requireAuth(), upload.single('file'), async (req, res) => {
         name: safeName,
         mimeType: file.mimetype,
         size: file.size,
-        url: `/uploads/${safeName}`,
+        url: publicUrlData.publicUrl,
       },
     });
   } catch (error) {

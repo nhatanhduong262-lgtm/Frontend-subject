@@ -74,9 +74,27 @@ export default async function handler(request, response) {
       });
 
       const safeName = `${Date.now()}-${(file.originalFilename || 'upload').replace(/\s+/g, '-')}`;
-      const destinationPath = path.join(uploadDir, safeName);
-      fs.copyFileSync(file.filepath, destinationPath);
+      const fileBuffer = fs.readFileSync(file.filepath);
+      
+      const { createClient } = require('@supabase/supabase-js');
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(safeName, fileBuffer, {
+          contentType: file.mimetype || 'application/octet-stream',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw Object.assign(new Error(`Supabase upload failed: ${uploadError.message}`), { statusCode: 500 });
+      }
+
       fs.unlinkSync(file.filepath);
+
+      const { data: publicUrlData } = supabase.storage.from('uploads').getPublicUrl(safeName);
 
       response.status(201).json({
         message: 'File uploaded successfully.',
@@ -84,7 +102,7 @@ export default async function handler(request, response) {
           name: safeName,
           mimeType: file.mimetype || 'application/octet-stream',
           size: file.size || 0,
-          url: `/uploads/${safeName}`,
+          url: publicUrlData.publicUrl,
         },
       });
       return;

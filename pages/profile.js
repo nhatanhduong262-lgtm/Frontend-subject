@@ -229,13 +229,7 @@ export default function ProfilePage() {
           {/* Main Card */}
           <div style={{ background: t.panelBg, border: `1px solid ${t.panelBorder}`, borderRadius: 24, padding: "28px 30px", boxShadow: t.panelShadow, backdropFilter: "blur(12px)" }}>
             <div style={{ animation: "slideIn 0.2s ease" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: isLight ? "rgba(109,59,232,0.1)" : "linear-gradient(135deg, rgba(139,92,246,0.3), rgba(61,217,255,0.2))", border: isLight ? "1px solid rgba(109,59,232,0.2)" : "1px solid rgba(139,92,246,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚙️</div>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: t.text }}>Account Settings</h2>
-                  <p style={{ margin: 0, color: t.muted, fontSize: 13 }}>Update your personal information</p>
-                </div>
-              </div>
+
 
               <form onSubmit={handleSave} style={{ display: "grid", gap: 20 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>

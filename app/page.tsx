@@ -15,12 +15,6 @@ const features = [
   "Customizable light and dark modes",
 ];
 
-const portalHighlights = [
-  { title: "Arcade arena", subtitle: "5 playable mini-games", accent: "#3dd9ff" },
-  { title: "Progress hub", subtitle: "XP, stages, and leadership", accent: "#8b5cf6" },
-  { title: "Admin control", subtitle: "Launch and manage content", accent: "#7ef7d3" },
-];
-
 export default async function Home() {
   const { count: liveGamesCount } = await supabase
     .from('games')
@@ -72,7 +66,7 @@ export default async function Home() {
       <section className="hero-panel">
         <div className="hero-copy">
           <span className="eyebrow">Next-gen gaming portal</span>
-          <h1>Play harder. Level faster. Build your legacy.</h1>
+          <h1>Play harder. Level faster.</h1>
           <p>
             PixelPulse Arena brings players, admin tools, and progression systems into one modern gaming ecosystem.
           </p>
@@ -119,15 +113,6 @@ export default async function Home() {
         ))}
       </section>
 
-      <section className="portal-grid">
-        {portalHighlights.map((item) => (
-          <div key={item.title} className="portal-card" style={{ borderTop: `3px solid ${item.accent}` }}>
-            <span className="portal-kicker">System</span>
-            <h3>{item.title}</h3>
-            <p>{item.subtitle}</p>
-          </div>
-        ))}
-      </section>
     </main>
   );
 }
