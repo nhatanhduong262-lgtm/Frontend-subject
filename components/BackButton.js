@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 
-export default function BackButton({ label = "← Back", fallback = "/" }) {
+export default function BackButton({ label = "← Back", fallback = "/", className = "ghost-button", style = {} }) {
   const router = useRouter();
 
   const handleBack = () => {
@@ -15,9 +15,9 @@ export default function BackButton({ label = "← Back", fallback = "/" }) {
   return (
     <button
       type="button"
-      className="ghost-button"
+      className={className}
       onClick={handleBack}
-      style={{ minHeight: 40 }}
+      style={{ minHeight: 40, ...style }}
     >
       {label}
     </button>

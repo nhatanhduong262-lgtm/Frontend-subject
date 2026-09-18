@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
+import { createClient } from "@supabase/supabase-js";
 
 const API_URL = "/api";
 
@@ -19,7 +20,25 @@ export default function UsersPage() {
       const response = await fetch(`${API_URL}/users`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        let errorMessage = "Unable to load users.";
+        const errorText = await response.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorText;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+
+        if (response.status === 401) {
+          window.localStorage.removeItem("token");
+          window.localStorage.removeItem("userId");
+          window.localStorage.removeItem("profile");
+          router.replace("/login");
+          return;
+        }
+        throw new Error(errorMessage);
+      }
       const result = await response.json();
       setUsers(result.users || []);
     } catch (requestError) {
@@ -35,7 +54,35 @@ export default function UsersPage() {
       return undefined;
     }
     const timer = window.setTimeout(() => loadUsers(), 0);
-    return () => window.clearTimeout(timer);
+
+    // Real-time synchronization for users
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+    let channel;
+    
+    if (url && key) {
+      const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+      channel = supabase.channel('users-list-sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'users' },
+          (payload) => {
+            if (payload.eventType === 'UPDATE') {
+              setUsers(currentUsers => 
+                currentUsers.map(u => String(u.id) === String(payload.new.id) ? { ...u, role: payload.new.role || 'user' } : u)
+              );
+            } else {
+              loadUsers();
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      window.clearTimeout(timer);
+      if (channel) channel.unsubscribe();
+    };
   }, [router]);
 
   const handleLogout = () => {
@@ -67,7 +114,7 @@ export default function UsersPage() {
             <p style={{ margin: 0, color: "#475569" }}>A live view of the users stored in Supabase.</p>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <BackButton label="← Back" />
+            <BackButton label="← Back" className="" style={{ border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", padding: "11px 16px", fontWeight: 700, cursor: "pointer", color: "#0f172a", minHeight: "unset" }} />
             <button type="button" onClick={loadUsers} disabled={loading} style={{ border: "1px solid #cbd5e1", borderRadius: 10, background: "#fff", padding: "11px 16px", fontWeight: 700, cursor: "pointer" }}>
               {loading ? "Loading..." : "Refresh"}
             </button>
@@ -93,7 +140,7 @@ export default function UsersPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
             <thead>
               <tr style={{ background: "#f8fafc", textAlign: "left" }}>
-                {['User', 'Email', 'Phone', 'ID'].map((heading) => <th key={heading} style={{ padding: "15px 18px", color: "#64748b", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>{heading}</th>)}
+                {['User', 'Role', 'Email', 'Phone', 'ID'].map((heading) => <th key={heading} style={{ padding: "15px 18px", color: "#64748b", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>{heading}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -105,12 +152,19 @@ export default function UsersPage() {
                       <strong>{user.name}</strong>
                     </div>
                   </td>
+                  <td style={{ padding: "16px 18px" }}>
+                    {user.role === 'admin' ? (
+                      <span style={{ display: 'inline-block', background: 'linear-gradient(135deg, #fbbf24, #d97706)', color: '#fff', padding: '4px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)' }}>Admin</span>
+                    ) : (
+                      <span style={{ display: 'inline-block', background: '#f1f5f9', color: '#64748b', padding: '4px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700, textTransform: 'capitalize' }}>User</span>
+                    )}
+                  </td>
                   <td style={{ padding: "16px 18px" }}>{user.email}</td>
                   <td style={{ padding: "16px 18px", color: "#475569" }}>{user.phone || "Not provided"}</td>
                   <td style={{ padding: "16px 18px", color: "#64748b" }}>#{user.id}</td>
                 </tr>
               ))}
-              {!loading && users.length === 0 ? <tr><td colSpan="4" style={{ padding: 28, textAlign: "center", color: "#64748b" }}>No registered users yet.</td></tr> : null}
+              {!loading && users.length === 0 ? <tr><td colSpan="5" style={{ padding: 28, textAlign: "center", color: "#64748b" }}>No registered users yet.</td></tr> : null}
             </tbody>
           </table>
         </div>

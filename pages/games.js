@@ -5,6 +5,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import BackButton from "../components/BackButton";
 import { getQuestState, getRankFromPoints, claimQuestReward } from "../lib/quests";
 import { getStoredPlayerProgress } from "../lib/playerProgress";
+import { useRealtimeGames } from "../hooks/useRealtimeGames";
 
 
 
@@ -16,7 +17,7 @@ export default function GamesPage() {
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [questState, setQuestState] = useState(null);
   const [playerProgress, setPlayerProgress] = useState([]);
-  const [games, setGames] = useState([]);
+  const { games } = useRealtimeGames();
 
   useEffect(() => {
     if (!window.localStorage.getItem("userId")) {
@@ -25,13 +26,6 @@ export default function GamesPage() {
     }
     
     setQuestState(getQuestState());
-    
-    fetch(`/api/games?t=${Date.now()}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.games) setGames(data.games);
-      })
-      .catch(console.error);
     const handleQuestUpdate = (e) => setQuestState(e.detail);
     window.addEventListener('pixelpulse-quests-updated', handleQuestUpdate);
 

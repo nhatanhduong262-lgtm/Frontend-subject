@@ -957,6 +957,20 @@ app.put('/admin/games/:id', requireAuth(['admin']), async (req, res) => {
       .single();
 
     if (error) return res.status(500).json({ message: error.message });
+
+    // Broadcast the update to all clients
+    const channel = supabaseClient.channel('public:games');
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.send({
+          type: 'broadcast',
+          event: 'game_updated',
+          payload: { game }
+        });
+        supabaseClient.removeChannel(channel);
+      }
+    });
+
     res.json({ game });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -113,9 +113,43 @@ export default function MessagesPage() {
 
   useEffect(() => { 
     if (token) loadFriends(true); 
-    const interval = setInterval(() => { if (token) loadFriends(false); }, 3000);
-    return () => clearInterval(interval);
-  }, [token, loadFriends]);
+
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+    let channel;
+
+    if (url && key && currentUserId) {
+      const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+      channel = supabase.channel('messages-realtime-sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'friendships' },
+          (payload) => {
+            if (
+              payload.new?.user_id === currentUserId || payload.new?.friend_id === currentUserId ||
+              payload.old?.user_id === currentUserId || payload.old?.friend_id === currentUserId
+            ) {
+              loadFriends();
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'users' },
+          (payload) => {
+            setFriends(prev => prev.map(f => String(f.id) === String(payload.new.id) ? { ...f, role: payload.new.role } : f));
+            if (String(selectedFriendRef.current?.id) === String(payload.new.id)) {
+              setSelectedFriend(prev => ({ ...prev, role: payload.new.role }));
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      if (channel) channel.unsubscribe();
+    };
+  }, [token, loadFriends, currentUserId]);
 
   // ── Load messages ──────────────────────────────────────
   const fetchMessages = useCallback(async (isInitial = false) => {
@@ -207,6 +241,14 @@ export default function MessagesPage() {
 
   const handleRemove = async (friendshipId) => {
     setFriendActionLoading(true);
+    // Optimistic UI update
+    setFriends(prev => prev.filter(f => f.friendshipId !== friendshipId));
+    setPendingIncoming(prev => prev.filter(f => f.friendshipId !== friendshipId));
+    setPendingOutgoing(prev => prev.filter(f => f.friendshipId !== friendshipId));
+    if (selectedFriendRef.current?.friendshipId === friendshipId) {
+      setSelectedFriend(null);
+    }
+    
     try {
       await fetch("/api/friends/remove", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ friendshipId }) });
       loadFriends();

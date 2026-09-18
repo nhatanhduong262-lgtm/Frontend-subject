@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import { DEFAULT_PLAYER_PROGRESS, getStoredPlayerProgress, loadPlayerProgressFromDatabase, subscribeToUserProgress } from "../lib/playerProgress";
 import { getQuestState } from "../lib/quests";
+import { useRealtimeGames } from "../hooks/useRealtimeGames";
 
 export default function ProgressPage() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function ProgressPage() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [questState, setQuestState] = useState(null);
-  const [games, setGames] = useState([]);
+  const { games } = useRealtimeGames();
 
   useEffect(() => {
     setQuestState(getQuestState());
@@ -25,13 +26,6 @@ export default function ProgressPage() {
   useEffect(() => {
     if (!window.localStorage.getItem("userId")) {
       router.replace("/login");
-    } else {
-      fetch("/api/games")
-        .then(res => res.json())
-        .then(data => {
-          if (data.games) setGames(data.games);
-        })
-        .catch(console.error);
     }
   }, [router]);
 

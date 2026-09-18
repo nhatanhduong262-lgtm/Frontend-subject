@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import BackButton from "../components/BackButton";
 import ThemeToggle from "../components/ThemeToggle";
 import { normalizeGamePayload, buildGameCatalogSummary, updateGameInList, removeGameFromList } from "../server/gameCatalog";
+import { createClient } from '@supabase/supabase-js';
 
 const demoGames = [
   { id: 1, title: "Nightfall Circuit", status: "Live", players: 1240, progress: 78, genre: "Racing" },
@@ -81,43 +82,85 @@ export default function AdminDashboard() {
       })
       .catch(err => console.error("Error fetching admin data:", err));
 
+    // Realtime subscription setup
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+    
+    if (!url || !key) return;
+
+    const supabase = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+
+    const channel = supabase.channel('public:games')
+      .on(
+        'broadcast',
+        { event: 'game_updated' },
+        (payload) => {
+          if (payload && payload.payload && payload.payload.game) {
+            const updatedGame = payload.payload.game;
+            setGames(prevGames => {
+              const existingIndex = prevGames.findIndex(g => Number(g.id) === Number(updatedGame.id));
+              if (existingIndex >= 0) {
+                const newGames = [...prevGames];
+                newGames[existingIndex] = { ...prevGames[existingIndex], ...updatedGame };
+                cachedGames = newGames;
+                return newGames;
+              } else {
+                const newGames = [updatedGame, ...prevGames];
+                cachedGames = newGames;
+                return newGames;
+              }
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+
   }, [router]);
 
   const handleAddGame = async (event) => {
     event.preventDefault();
 
     if (!form.title.trim()) return;
+    
+    // Find if the game exists (case-insensitive)
+    const gameToUpdate = games.find(g => g.title.toLowerCase() === form.title.trim().toLowerCase());
+    
+    if (!gameToUpdate) {
+      alert("Game not found. Quick actions can only be used to update existing games.");
+      return;
+    }
+
     const token = window.localStorage.getItem("token");
 
     try {
-      const res = await fetch("/api/admin/games", {
-        method: "POST",
+      const res = await fetch(`/api/admin/games/${gameToUpdate.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...form, progress: 0, players: 0 })
+        body: JSON.stringify({ title: gameToUpdate.title, genre: form.genre, status: form.status, stage: gameToUpdate.stage, description: gameToUpdate.description, progress: gameToUpdate.progress })
       });
       
       if (res.ok) {
         const { game } = await res.json();
         
-        const existingIndex = games.findIndex(g => Number(g.id) === Number(game.id));
-        let newGames;
-        if (existingIndex >= 0) {
-          newGames = [...games];
-          newGames[existingIndex] = { ...games[existingIndex], ...game };
-        } else {
-          newGames = [game, ...games];
-        }
+        const newGames = games.map(g => Number(g.id) === Number(game.id) ? { ...g, ...game } : g);
         
         cachedGames = newGames;
         setGames(newGames);
         setForm({ title: "", genre: "Action", status: "Live", stage: "Stage 1", description: "" });
+        alert("Game updated successfully!");
       } else {
         const err = await res.json();
-        alert(err.message || "Failed to add game");
+        alert(err.message || "Failed to update game");
       }
     } catch (error) {
       console.error(error);
-      alert("Error adding game");
+      alert("Error updating game");
     }
   };
 
@@ -293,15 +336,19 @@ export default function AdminDashboard() {
               };
 
               const colors = palette[game.genre] || ["#7c3aed", "#22d3ee"];
+              const isMaintenance = game.status === "Maintenance";
 
               return (
                 <div key={game.id} className="game-list-item" style={{
-                  background: `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`,
-                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: isMaintenance 
+                    ? "linear-gradient(135deg, #334155 0%, #0f172a 100%)" 
+                    : `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`,
+                  border: isMaintenance ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(255,255,255,0.18)",
                   boxShadow: "0 16px 40px rgba(15, 23, 42, 0.32)",
                   padding: 16,
                   borderRadius: 18,
-                  color: "#fff",
+                  color: isMaintenance ? "rgba(255,255,255,0.6)" : "#fff",
+                  filter: isMaintenance ? "grayscale(100%) opacity(0.8)" : "none",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <div style={{
@@ -414,7 +461,7 @@ export default function AdminDashboard() {
 
         <aside className="panel-card" style={{ boxShadow: "0 0 26px rgba(16,185,129,0.12)" }}>
           <div style={panelHeaderStyle}>System Settings</div>
-          <h2 style={{ marginTop: 0, color: "#b7f7dc" }}>Quick actions</h2>
+          <h2 style={{ marginTop: 0, color: "#b7f7dc" }}>Quick Edit</h2>
           <form onSubmit={handleAddGame} className="game-list" style={{ gap: 12 }}>
             <div className="form-field">
               <label>Game title</label>
@@ -423,8 +470,17 @@ export default function AdminDashboard() {
                 className="form-input"
                 style={{ color: "#fff", backgroundColor: "rgba(15,23,42,0.6)", border: "1px solid rgba(255,255,255,0.2)", padding: "10px 14px", borderRadius: 8 }}
                 value={form.title}
-                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="Enter a game title"
+                onChange={(event) => {
+                  const newTitle = event.target.value;
+                  setForm((current) => {
+                    const matchedGame = games.find(g => g.title.toLowerCase() === newTitle.trim().toLowerCase());
+                    if (matchedGame) {
+                      return { ...current, title: newTitle, genre: matchedGame.genre, status: matchedGame.status };
+                    }
+                    return { ...current, title: newTitle };
+                  });
+                }}
+                placeholder="Select an existing game to edit"
               />
             </div>
 
@@ -467,9 +523,10 @@ export default function AdminDashboard() {
 
 
 
-            <button type="submit" className="primary-button" style={{ width: "100%", justifyContent: "center" }}>Save game</button>
+            <button type="submit" className="primary-button" style={{ width: "100%", justifyContent: "center" }}>Update game</button>
           </form>
         </aside>
+
       </div>
     </main>
   );
